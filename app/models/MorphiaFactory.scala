@@ -14,10 +14,14 @@ object MorphiaFactory {
   val morphia = new Morphia()
 
   def getDatastore(dbName: String = "default"): Datastore = {
-    morphia.createDatastore(client, dbName)
+    val ds = morphia.createDatastore(client, dbName)
+    ds.ensureIndexes()
+    ds.ensureCaps()
+    ds
   }
 
   def initialize(serverList: Seq[ServerAddress]): Unit = {
     client = new MongoClient(serverList)
+    morphia.map(classOf[Conversation])
   }
 }

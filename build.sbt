@@ -17,7 +17,7 @@ libraryDependencies ++= Seq(
   "commons-httpclient" % "commons-httpclient" % "3.1",
   "commons-codec" % "commons-codec" % "1.10",
   "commons-collections" % "commons-collections" % "3.2.1",
-  "org.scalatestplus" %% "play" % "1.1.0" % "test",
+  "net.debasishg" %% "redisclient" % "2.15",
   jdbc,
   anorm,
   cache,
