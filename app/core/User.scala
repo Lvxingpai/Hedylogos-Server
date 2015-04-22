@@ -1,9 +1,8 @@
 package core
 
-import core.exception.UserException
-import models.{HedyRedis, UserReg}
-import play.api.Play.current
-import play.api.cache.Cache
+import models.HedyRedis
+
+import scala.collection.mutable.ArrayBuffer
 
 
 /**
@@ -12,56 +11,34 @@ import play.api.cache.Cache
  * Created by zephyre on 4/20/15.
  */
 object User {
-  def login(userId: Long, regId: String, deviceToken: String = null): Unit = {
-    val userReg = UserReg(userId, regId, deviceToken)
-    Cache.set(s"$userId", userReg)
+  def userId2key(userId: Long): String = s"$userId.loginInfo"
+
+  def login(userId: Long, regId: String, deviceToken: Option[String]): Unit = {
+    HedyRedis.client.hmset(userId2key(userId),
+      Map("regId" -> regId, "deviceToken" -> deviceToken.getOrElse(""), "loginTs" -> System.currentTimeMillis,
+        "status" -> "login"))
   }
 
   def logout(userId: Long): Unit = {
-    Cache.get(s"$userId").orNull.asInstanceOf[UserReg].logoutTime = System.currentTimeMillis()
+    HedyRedis.client.hmset(userId2key(userId),
+      Map("logoutTs" -> System.currentTimeMillis, "status" -> "logout"))
   }
 
-  def loginInfo(userId: Long): UserReg = {
-    val result = Cache.get(s"$userId").orNull
-    if (result != null) result.asInstanceOf[UserReg]
-    else null
+  def loginInfo(userId: Long): Option[Map[String, Any]] = {
+    val result = HedyRedis.client.hgetall[String, String](userId2key(userId)).get
+    val items = ArrayBuffer[(String, Any)]()
+    if (result.nonEmpty) {
+      Array("regId", "status").foreach(key => items += key -> result(key))
+      Array("loginTs", "logoutTs").foreach(key => items += key -> result.get(key).flatMap(v => Some(v.toLong)))
+
+      val dtKey = "deviceToken"
+      items += dtKey -> result.get(dtKey)
+
+      Some(items.toMap)
+    } else {
+      None
+    }
   }
 
-  /**
-   * 获得用户的msgCounter
-   *
-   */
-  def getMsgCounter(userId: Long): Long = {
-    val client = HedyRedis.client
-    val key = s"$userId.counter"
-    val tmp = client.get(key).orNull
-    if (tmp != null) tmp.toInt
-    else
-      throw new UserException(-1, "Invalid userId")
-  }
-
-  /**
-   * 对用户的msgCounter做INCR操作
-   *
-   * @param increment 增量
-   * @param oldValue  是否返回旧的msgCounter
-   * @return
-   */
-  def incrMsgCounter(userId: Long, increment: Long = 1, oldValue: Boolean = false): Long = {
-    val client = HedyRedis.client
-    val key = s"$userId.counter"
-    val result: Long = (if (increment == 1) client.incr _ else client.incrby(_: String, increment.toInt))(key).get
-    if (oldValue) result - increment else result
-  }
-
-  /**
-   * 对用户的msgCounter做批量INCR操作
-   *
-   * @param increment 增量
-   * @param oldValue  是否返回旧的msgCounter
-   * @return
-   */
-  def incrMsgCounter(userIdList: Seq[Long], increment: Long, oldValue: Boolean): Seq[Long] = {
-    userIdList.map(incrMsgCounter(_, increment, oldValue))
-  }
+  def destroy(userId: Long): Unit = HedyRedis.client.del(userId2key(userId))
 }

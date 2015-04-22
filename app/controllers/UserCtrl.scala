@@ -15,9 +15,9 @@ object UserCtrl extends Controller {
       val regId = (jsonNode \ "regId").asOpt[String].get
 
       val dtTmp = jsonNode \ "deviceToken"
-      var dt: String = null
+      var dt: Option[String] = None
       if (!dtTmp.isInstanceOf[JsUndefined])
-        dt = (jsonNode \ "deviceToken").asOpt[String].get
+        dt = Some((jsonNode \ "deviceToken").asOpt[String].get)
 
       User.login(userId, regId, dt)
       Helpers.JsonResponse()
