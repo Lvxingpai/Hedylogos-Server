@@ -1,7 +1,7 @@
 package controllers
 
 import core.Chat
-import models.Message
+import core.json.MessageFormatter
 import org.bson.types.ObjectId
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
@@ -33,21 +33,21 @@ object ChatCtrl extends Controller {
     }
   }
 
-  def fetchMessages(user: Long) = Action {
-    def msg2json(msg: Message): JsValue = {
-      JsObject(Seq(
-        "msgId" -> JsNumber(msg.getMsgId.toLong),
-        "msgType" -> JsNumber(msg.getMsgType.toInt),
-        "conversation" -> JsString(msg.getConversation.toString),
-        "contents" -> JsString(msg.getContents),
-        "senderId" -> JsNumber(msg.getSenderId.toLong),
-        "senderAvatar" -> JsString(""),
-        "senderName" -> JsString("测试用户"),
-        "timestamp" -> JsNumber(msg.getTimestamp.toLong)))
+  def acknowledge(user: Long) = Action {
+    request => {
+      val jsonNode = request.body.asJson.get
+      val msgList = (jsonNode \ "msgList").asInstanceOf[JsArray].value.map(_.asOpt[String].get)
+      Chat.acknowledge(user, msgList)
+
+      Helpers.JsonResponse(data = _fetchMessages(user))
     }
+  }
 
-    val msgList = JsArray(Chat.fetchMessage(user).map(msg2json))
+  def fetchMessages(user: Long) = Action {
+    Helpers.JsonResponse(data = _fetchMessages(user))
+  }
 
-    Helpers.JsonResponse(data = msgList)
+  def _fetchMessages(user: Long): JsValue = {
+    JsArray(Chat.fetchMessage(user).map(MessageFormatter.format(_)))
   }
 }

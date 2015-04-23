@@ -3,16 +3,18 @@
 # ~~~~
 
 # Home page
-GET         /                    controllers.Application.index
+GET         /                       controllers.Application.index
 
-POST        /users/login         controllers.UserCtrl.login
+POST        /users/login            controllers.UserCtrl.login
 
-POST        /users/logout        controllers.UserCtrl.logout
+POST        /users/logout           controllers.UserCtrl.logout
 
-GET         /test                controllers.Application.test
+GET         /test                   controllers.Application.test
 #
 #POST        /users/login        controllers.UserCtrl.login()
 
-POST        /chats              controllers.ChatCtrl.sendMessage()
+POST        /chats                  controllers.ChatCtrl.sendMessage()
 
-GET         /chats/:user         controllers.ChatCtrl.fetchMessages(user:Long)
+GET         /chats/:user            controllers.ChatCtrl.fetchMessages(user:Long)
+
+POST        /chats/:user/ack        controllers.ChatCtrl.acknowledge(user:Long)

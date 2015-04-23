@@ -14,10 +14,7 @@ import java.util.Objects;
  * Created by zephyre on 4/22/15.
  */
 @Entity
-public class Conversation {
-    @Id
-    private ObjectId id;
-
+public class Conversation extends AbstractEntity {
     @Version
     private Long v;
 
@@ -52,14 +49,6 @@ public class Conversation {
         c.msgCounter = 0L;
         c.createTime = c.updateTime = System.currentTimeMillis();
         return c;
-    }
-
-    public ObjectId getId() {
-        return id;
-    }
-
-    public void setId(ObjectId id) {
-        this.id = id;
     }
 
     public Long getV() {

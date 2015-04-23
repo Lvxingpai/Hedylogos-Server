@@ -8,10 +8,7 @@ import org.mongodb.morphia.annotations.Id;
  * Created by zephyre on 4/22/15.
  */
 @Entity
-public class Message {
-    @Id
-    private ObjectId id;
-
+public class Message extends AbstractEntity{
     private ObjectId conversation;
 
     private Long msgId;
@@ -27,14 +24,6 @@ public class Message {
     private Integer msgType;
 
     private Long timestamp;
-
-    public ObjectId getId() {
-        return id;
-    }
-
-    public void setId(ObjectId id) {
-        this.id = id;
-    }
 
     public ObjectId getConversation() {
         return conversation;

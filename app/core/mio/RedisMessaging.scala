@@ -25,6 +25,11 @@ object RedisMessaging extends MessageDeliever {
     }
   }
 
+  def acknowledge(userId: Long, msgList: Seq[String]): Unit = {
+    val key = userId2key(userId)
+    HedyRedis.client.srem(key, "", msgList: _*)
+  }
+
   def destroyFetchSets(userIds: Seq[Long]): Unit = {
     val keyList = userIds.map(userId2key)
     HedyRedis.client.del("", keyList: _*)

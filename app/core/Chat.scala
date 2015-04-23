@@ -100,4 +100,8 @@ object Chat {
   def fetchMessage(userId: Long): Seq[Message] = {
     RedisMessaging.fetchMessages(userId)
   }
+
+  def acknowledge(userId: Long, msgIdList: Seq[String]): Unit = {
+    RedisMessaging.acknowledge(userId, msgIdList)
+  }
 }
