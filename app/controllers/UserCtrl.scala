@@ -1,7 +1,6 @@
 package controllers
 
 import core.User
-import play.api.libs.json.JsUndefined
 import play.api.mvc.{Action, Controller}
 
 /**
@@ -14,12 +13,7 @@ object UserCtrl extends Controller {
       val userId = (jsonNode \ "userId").asOpt[Long].get
       val regId = (jsonNode \ "regId").asOpt[String].get
 
-      val dtTmp = jsonNode \ "deviceToken"
-      var dt: Option[String] = None
-      if (!dtTmp.isInstanceOf[JsUndefined])
-        dt = Some((jsonNode \ "deviceToken").asOpt[String].get)
-
-      User.login(userId, regId, dt)
+      User.login(userId, regId)
       Helpers.JsonResponse()
     }
   }

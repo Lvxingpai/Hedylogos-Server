@@ -1,7 +1,7 @@
 package core
 
 import com.mongodb.DuplicateKeyException
-import core.mio.RedisMessaging
+import core.mio.{GetuiService, MongoStorage, RedisMessaging}
 import models._
 import org.bson.types.ObjectId
 
@@ -79,20 +79,16 @@ object Chat {
     msg.setTimestamp(System.currentTimeMillis)
     msg.setConversation(cid)
     msg.setMsgId(generateMsgId(cid).get)
+    msg.setSenderId(sender)
     msg
   }
 
   def sendMessage(msgType: Int, contents: String, cid: ObjectId, sender: Long): Message = {
     val msg = buildMessage(msgType, contents, cid, sender)
-
     val c = conversation(cid).get
-    val participants = scala.collection.mutable.Set[Long]()
-    for (v <- c.getParticipants)
-      participants += v
-    participants -= sender
+    val targets = Set(c.getParticipants.filter(_ != sender).map(scala.Long.unbox(_)): _*).toSeq
 
-//    Seq(MongoStorage, RedisMessaging, GetuiService).foreach(_.sendMessage(msg, participants.toArray))
-
+    Seq(MongoStorage, RedisMessaging, GetuiService).foreach(_.sendMessage(msg, targets))
     msg
   }
 

@@ -13,7 +13,7 @@ import scala.collection.mutable.ArrayBuffer
 object User {
   def userId2key(userId: Long): String = s"$userId.loginInfo"
 
-  def login(userId: Long, regId: String, deviceToken: Option[String]): Unit = {
+  def login(userId: Long, regId: String, deviceToken: Option[String] = None): Unit = {
     HedyRedis.client.hmset(userId2key(userId),
       Map("regId" -> regId, "deviceToken" -> deviceToken.getOrElse(""), "loginTs" -> System.currentTimeMillis,
         "status" -> "login"))

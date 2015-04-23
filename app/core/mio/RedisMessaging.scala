@@ -14,13 +14,15 @@ object RedisMessaging extends MessageDeliever {
 
   def fetchMessages(userId: Long): Seq[Message] = {
     val key = userId2key(userId)
-    val tmp = HedyRedis.client.smembers[String](key).get.filter(_.nonEmpty)
-    val msgSet = tmp.map(v => new ObjectId(v.get))
-
-    val results = MongoStorage.fetchMessages(msgSet.toSeq)
-    HedyRedis.client.srem(key, tmp.map(_.get).toSeq)
-
-    results
+    val msgKeys = HedyRedis.client.smembers[String](key).get.filter(_.nonEmpty).map(_.get)
+    if (msgKeys.isEmpty)
+      Seq[Message]()
+    else {
+      val msgIds = msgKeys.map(new ObjectId(_: String)).toSeq
+      val results = MongoStorage.fetchMessages(msgIds)
+      HedyRedis.client.srem(key, "", msgKeys.toSeq: _*)
+      results
+    }
   }
 
   def destroyFetchSets(userIds: Seq[Long]): Unit = {

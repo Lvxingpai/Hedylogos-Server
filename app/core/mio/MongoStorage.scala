@@ -1,7 +1,5 @@
 package core.mio
 
-import java.util
-
 import models.{Message, MorphiaFactory}
 import org.bson.types.ObjectId
 
@@ -18,10 +16,13 @@ object MongoStorage extends MessageDeliever {
   }
 
   def fetchMessages(idList: Seq[ObjectId]): Seq[Message] = {
-    val nlist: java.util.List[ObjectId] = new util.ArrayList[ObjectId]()
-    idList.foreach(nlist.append(_))
-    val query = ds.createQuery(classOf[Message]).field("id").in(idList)
-    query.asList()
+    if (idList.isEmpty)
+      Seq[Message]()
+    else {
+      val nlist: java.util.List[ObjectId] = idList // new util.ArrayList[ObjectId]()
+      val query = ds.createQuery(classOf[Message]).field("id").in(idList)
+      query.asList()
+    }
   }
 
   def destroyMessage(idList: Seq[ObjectId]): Unit = {
