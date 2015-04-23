@@ -1,8 +1,10 @@
 import core.User
+import org.junit.runner.RunWith
 import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
 import play.api.test.WithApplication
 
-
+@RunWith(classOf[JUnitRunner])
 class UserSpec extends Specification {
 
   "User operations" should {
@@ -32,7 +34,7 @@ class UserSpec extends Specification {
 
         info3("status") must beEqualTo("logout")
       } finally {
-        User.destroy(userId)
+        User.destroyUser(userId)
       }
     }
   }

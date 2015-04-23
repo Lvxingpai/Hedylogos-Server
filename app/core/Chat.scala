@@ -1,13 +1,31 @@
 package core
 
 import com.mongodb.DuplicateKeyException
+import core.mio.RedisMessaging
 import models._
 import org.bson.types.ObjectId
+
+import scala.collection.JavaConversions._
 
 /**
  * Created by zephyre on 4/20/15.
  */
 object Chat {
+  val ds = MorphiaFactory.getDatastore()
+
+  /**
+   * 通过id获得conversation信息
+   */
+  def conversation(cid: ObjectId): Option[Conversation] = {
+    val result = ds.find(classOf[Conversation], "id", cid).get()
+    if (result != null) Some(result) else None
+  }
+
+  def destroyConversation(cid: ObjectId): Unit = {
+    ds.delete(classOf[Conversation], cid)
+    HedyRedis.client.del(s"$cid.msgId")
+  }
+
   /**
    * 获得一个单聊的Conversation
    *
@@ -17,7 +35,6 @@ object Chat {
   def singleConversation(userA: Long, userB: Long, create: Boolean = true): Option[Conversation] = {
     assert(userA > 0 && userB > 0 && userA != userB, s"Invalid users: $userA, $userB")
 
-    val ds = MorphiaFactory.getDatastore()
     val c: Conversation = Conversation.create(userA, userB)
 
     try {
@@ -50,20 +67,32 @@ object Chat {
   }
 
   def groupConversation(fingerprint: String): Option[Conversation] = {
-    val ds = MorphiaFactory.getDatastore()
     val result = ds.find(classOf[Conversation], Conversation.FD_FINGERPRINT, fingerprint).get
     if (result != null) Some(result) else None
   }
 
-  def sendMessage(msgType: Int, contents: String, conversation: ObjectId, sender: Long): Message = {
+  def buildMessage(msgType: Int, contents: String, cid: ObjectId, sender: Long): Message = {
     val msg = new Message()
     msg.setId(new ObjectId())
     msg.setContents(contents)
     msg.setMsgType(msgType)
     msg.setTimestamp(System.currentTimeMillis)
-    msg.setConversation(conversation)
-    msg.setMsgId(generateMsgId(conversation).get)
-    MorphiaFactory.getDatastore().save[Message](msg)
+    msg.setConversation(cid)
+    msg.setMsgId(generateMsgId(cid).get)
+    msg
+  }
+
+  def sendMessage(msgType: Int, contents: String, cid: ObjectId, sender: Long): Message = {
+    val msg = buildMessage(msgType, contents, cid, sender)
+
+    val c = conversation(cid).get
+    val participants = scala.collection.mutable.Set[Long]()
+    for (v <- c.getParticipants)
+      participants += v
+    participants -= sender
+
+//    Seq(MongoStorage, RedisMessaging, GetuiService).foreach(_.sendMessage(msg, participants.toArray))
+
     msg
   }
 
@@ -73,14 +102,6 @@ object Chat {
   }
 
   def fetchMessage(userId: Long): Seq[Message] = {
-    null
-  }
-
-  def readMessage(userId: Long, start: Long, end: Long): Unit = {
-
-  }
-
-  def readMessage(userId: Long, msgIdList: Seq[Long]): Unit = {
-
+    RedisMessaging.fetchMessages(userId)
   }
 }

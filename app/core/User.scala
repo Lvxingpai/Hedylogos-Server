@@ -40,5 +40,5 @@ object User {
     }
   }
 
-  def destroy(userId: Long): Unit = HedyRedis.client.del(userId2key(userId))
+  def destroyUser(userId: Long): Unit = HedyRedis.client.del(userId2key(userId))
 }
