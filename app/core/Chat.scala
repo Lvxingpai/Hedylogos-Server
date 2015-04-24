@@ -8,8 +8,7 @@ import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 /**
  * Created by zephyre on 4/20/15.
@@ -29,7 +28,7 @@ object Chat {
 
   def destroyConversation(cid: ObjectId): Unit = {
     ds.delete(classOf[Conversation], cid)
-    HedyRedis.clientsPool.withClient(_.del(s"$cid.msgId"))
+    HedyRedis.clients.withClient(_.del(s"$cid.msgId"))
   }
 
   /**
@@ -63,7 +62,7 @@ object Chat {
    */
   def generateMsgId(cid: ObjectId): Future[Option[Long]] = {
     Future {
-      HedyRedis.clientsPool.withClient(_.incr(s"$cid.msgId"))
+      HedyRedis.clients.withClient(_.incr(s"$cid.msgId"))
     }
   }
 
@@ -75,7 +74,7 @@ object Chat {
    */
   def msgId(cid: ObjectId): Future[Option[Long]] = {
     Future {
-      val result: Option[String] = HedyRedis.clientsPool.withClient(_.get(s"$cid.msgId"))
+      val result: Option[String] = HedyRedis.clients.withClient(_.get(s"$cid.msgId"))
       if (result != None) Some(result.get.toLong) else None
     }
   }
@@ -113,7 +112,7 @@ object Chat {
     Seq(MongoStorage, RedisMessaging, GetuiService).foreach(service => futureTargets.map(
       targets => {
         futureMsg.map(msg => {
-          service.sendMessageAsync(msg, targets.toSeq)
+          service sendMessage(msg, targets.toSeq)
         })
       }))
     futureMsg
@@ -121,10 +120,7 @@ object Chat {
 
   def sendMessage(msgType: Int, contents: String, receiver: Long, sender: Long): Future[Message] = {
     val futureConv = Chat.singleConversation(sender, receiver)
-
-    futureConv.map(conv => {
-      Await.result(sendMessage(msgType, contents, conv.get.getId, sender), Duration.Inf)
-    })
+    futureConv.flatMap(conv => sendMessage(msgType, contents, conv.get.getId, sender))
   }
 
   def fetchMessage(userId: Long): Future[Seq[Message]] = {

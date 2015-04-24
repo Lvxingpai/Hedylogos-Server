@@ -7,8 +7,7 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 /**
  * Created by zephyre on 4/23/15.
@@ -42,12 +41,10 @@ object ChatCtrl extends Controller {
   def acknowledge(user: Long) = Action.async {
     request => {
       val jsonNode = request.body.asJson.get
-      val msgList = (jsonNode \ "msgList").asInstanceOf[JsArray].value.map(_.asOpt[String].get)
-      val futureMsgList = _fetchMessages(user)
+      val ackMessages = (jsonNode \ "msgList").asInstanceOf[JsArray].value.map(_.asOpt[String].get)
 
-      Chat.acknowledge(user, msgList).map(_ => {
-        Await.result(futureMsgList.map(v => Helpers.JsonResponse(data = Some(v))), Duration.Inf)
-      })
+      Chat.acknowledge(user, ackMessages).flatMap(_ =>
+        _fetchMessages(user).map(jsvalue => Helpers.JsonResponse(data = Some(jsvalue))))
     }
   }
 

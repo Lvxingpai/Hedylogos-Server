@@ -17,7 +17,7 @@ object User {
 
   def login(userId: Long, regId: String, deviceToken: Option[String] = None): Future[Unit] = {
     Future {
-      HedyRedis.clientsPool.withClient(_.hmset(userId2key(userId),
+      HedyRedis.clients.withClient(_.hmset(userId2key(userId),
         Map("regId" -> regId, "deviceToken" -> deviceToken.getOrElse(""), "loginTs" -> System.currentTimeMillis,
           "status" -> "login"))
       )
@@ -26,14 +26,14 @@ object User {
 
   def logout(userId: Long): Future[Unit] = {
     Future {
-      HedyRedis.clientsPool.withClient(_.hmset(userId2key(userId),
+      HedyRedis.clients.withClient(_.hmset(userId2key(userId),
         Map("logoutTs" -> System.currentTimeMillis, "status" -> "logout")));
     }
   }
 
   def loginInfo(userId: Long): Future[Option[Map[String, Any]]] = {
     Future {
-      val result = HedyRedis.clientsPool.withClient(_.hgetall[String, String](userId2key(userId)).get)
+      val result = HedyRedis.clients.withClient(_.hgetall[String, String](userId2key(userId)).get)
       val items = ArrayBuffer[(String, Any)]()
       if (result.nonEmpty) {
         Array("regId", "status").foreach(key => items += key -> result(key))
@@ -49,5 +49,5 @@ object User {
     }
   }
 
-  def destroyUser(userId: Long): Unit = HedyRedis.clientsPool.withClient(_.del(userId2key(userId)))
+  def destroyUser(userId: Long): Unit = HedyRedis.clients.withClient(_.del(userId2key(userId)))
 }
