@@ -1,8 +1,9 @@
 import java.lang.reflect.Modifier
 
+import core.connector.{HedyRedis, MorphiaFactory}
 import core.mio.{GetuiService, MongoStorage, RedisMessaging}
 import core.{Chat, User}
-import models.{Conversation, HedyRedis, Message, MorphiaFactory}
+import models.{Conversation, Message}
 import org.bson.types.ObjectId
 import org.junit.runner.RunWith
 import org.specs2.mutable._

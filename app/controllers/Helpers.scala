@@ -12,11 +12,12 @@ object Helpers {
    *
    * @return
    */
-  def JsonResponse(retCode: Int = 0, data: JsValue = null, errorMsg: String = null): Result = {
-    val c = ArrayBuffer[(String, JsValue)]("timestamp" -> JsNumber(System.currentTimeMillis()),
-      "code" -> JsNumber(retCode))
-    if (data != null) c += ("result" -> data)
-    if (errorMsg != null) c += ("error" -> JsString(errorMsg))
-    Results.Ok(JsObject(c)).withHeaders("Content-Type" -> "application/json;charset=utf-8")
+  def JsonResponse(retCode: Int = 0, data: Option[JsValue] = None, errorMsg: Option[String] = None): Result = {
+      val c = ArrayBuffer[(String, JsValue)](
+        "timestamp" -> JsNumber(System.currentTimeMillis()),
+        "code" -> JsNumber(retCode))
+      if (data.nonEmpty) c += ("result" -> data.get)
+      if (errorMsg.nonEmpty) c += ("error" -> JsString(errorMsg.get))
+      Results.Ok(JsObject(c)).withHeaders("Content-Type" -> "application/json;charset=utf-8")
   }
 }

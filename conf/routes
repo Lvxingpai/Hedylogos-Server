@@ -9,7 +9,7 @@ POST        /users/login            controllers.UserCtrl.login
 
 POST        /users/logout           controllers.UserCtrl.logout
 
-GET         /test                   controllers.Application.test
+#GET         /test                   controllers.Application.getUserDetails(user:Long)
 #
 #POST        /users/login        controllers.UserCtrl.login()
 
