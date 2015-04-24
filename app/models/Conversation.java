@@ -15,8 +15,8 @@ import java.util.Objects;
  */
 @Entity
 public class Conversation extends AbstractEntity {
-    @Version
-    private Long v;
+//    @Version
+//    private Long v;
 
     @Indexed(unique = true)
     private String fingerprint;
@@ -51,13 +51,13 @@ public class Conversation extends AbstractEntity {
         return c;
     }
 
-    public Long getV() {
-        return v;
-    }
-
-    public void setV(Long v) {
-        this.v = v;
-    }
+//    public Long getV() {
+//        return v;
+//    }
+//
+//    public void setV(Long v) {
+//        this.v = v;
+//    }
 
     public String getFingerprint() {
         return fingerprint;

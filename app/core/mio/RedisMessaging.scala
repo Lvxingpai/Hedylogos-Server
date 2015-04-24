@@ -2,6 +2,10 @@ package core.mio
 
 import models.{HedyRedis, Message}
 import org.bson.types.ObjectId
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 /**
  * Created by zephyre on 4/22/15.
@@ -9,19 +13,24 @@ import org.bson.types.ObjectId
 object RedisMessaging extends MessageDeliever {
   def userId2key(userId: Long): String = s"$userId.fetchInfo"
 
-  override def sendMessage(message: Message, targets: Seq[Long]): Unit =
-    targets.foreach(uid => HedyRedis.client.sadd(userId2key(uid), message.getId.toString))
+  override def sendMessageAsync(message: Message, targets: Seq[Long]): Future[Unit] = {
+    Future {
+      targets.foreach(uid => HedyRedis.client.sadd(userId2key(uid), message.getId.toString))
+    }
+  }
 
-  def fetchMessages(userId: Long): Seq[Message] = {
-    val key = userId2key(userId)
-    val msgKeys = HedyRedis.client.smembers[String](key).get.filter(_.nonEmpty).map(_.get)
-    if (msgKeys.isEmpty)
-      Seq[Message]()
-    else {
-      val msgIds = msgKeys.map(new ObjectId(_: String)).toSeq
-      val results = MongoStorage.fetchMessages(msgIds)
-      HedyRedis.client.srem(key, "", msgKeys.toSeq: _*)
-      results
+  def fetchMessages(userId: Long): Future[Seq[Message]] = {
+    Future {
+      val key = userId2key(userId)
+      val msgKeys = HedyRedis.client.smembers[String](key).get.filter(_.nonEmpty).map(_.get)
+      if (msgKeys.isEmpty)
+        Seq[Message]()
+      else {
+        val msgIds = msgKeys.map(new ObjectId(_: String)).toSeq
+        val results = Await.result(MongoStorage.fetchMessages(msgIds), Duration.Inf)
+        HedyRedis.client.srem(key, "", msgKeys.toSeq: _*)
+        results
+      }
     }
   }
 
@@ -33,5 +42,12 @@ object RedisMessaging extends MessageDeliever {
   def destroyFetchSets(userIds: Seq[Long]): Unit = {
     val keyList = userIds.map(userId2key)
     HedyRedis.client.del("", keyList: _*)
+  }
+
+  override def sendMessage(message: Message, target: Seq[Long]): Unit = {
+    target.foreach(uid =>
+      HedyRedis.client.sadd(
+        userId2key(uid),
+        message.getId.toString))
   }
 }

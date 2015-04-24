@@ -7,8 +7,13 @@ import core.json.MessageFormatter
 import core.{GlobalConfig, User}
 import models.Message
 import play.api.Logger
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+
 
 /**
  * 个推推送服务
@@ -60,11 +65,19 @@ object GetuiService extends MessageDeliever {
     Logger.debug("Push result: %s".format(pushResult.getResponse.toString))
   }
 
-  override def sendMessage(message: Message, targets: Seq[Long]): Unit = {
+  def sendMessageAsync(message: Message, targets: Seq[Long]): Future[Unit] = {
     // 将targets中的userId取出来，读取regId（类型：Seq[String]）
-    val regIdList = targets.map(User.loginInfo(_).flatMap[String](v => Some(v.get("regId").get.toString)))
-      .filter(_.nonEmpty).map(_.get)
+    val futureUserList = Future.fold(targets.map(User.loginInfo))(ArrayBuffer[Option[Map[String, Any]]]())(
+      (v1, v2) => {
+        v1 += v2
+        v1
+      })
+    val futureRegIdList = futureUserList.map(_.filter(_.nonEmpty).map(_.get("regId").toString))
 
-    sendTransmission(message, regIdList)
+    futureRegIdList.map(sendTransmission(message, _))
+  }
+
+  override def sendMessage(message: Message, target: Seq[Long]): Unit = {
+    Await.result(sendMessageAsync(message, target), Duration.Inf)
   }
 }
