@@ -1,6 +1,7 @@
-package models
+package core.connector
 
 import com.mongodb.{MongoClient, ServerAddress}
+import models.Conversation
 import org.mongodb.morphia.{Datastore, Morphia}
 
 import scala.collection.JavaConversions._

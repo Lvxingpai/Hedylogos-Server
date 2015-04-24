@@ -2,7 +2,6 @@ package controllers
 
 import core.User
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import scala.concurrent.Future
 import play.api.mvc.{Action, Controller}
 
 /**
@@ -14,8 +13,7 @@ object UserCtrl extends Controller {
       val jsonNode = request.body.asJson.get
       val userId = (jsonNode \ "userId").asOpt[Long].get
       val regId = (jsonNode \ "regId").asOpt[String].get
-      Future(User.login(userId, regId))
-      Helpers.JsonResponse()
+      User.login(userId, regId).map(v => Helpers.JsonResponse())
     }
   }
 
@@ -23,8 +21,7 @@ object UserCtrl extends Controller {
     request => {
       val jsonNode = request.body.asJson.get
       val userId = (jsonNode \ "userId").asOpt[Long].get
-      Future(User.logout(userId))
-      Helpers.JsonResponse()
+      User.logout(userId).map(v => Helpers.JsonResponse())
     }
   }
 }

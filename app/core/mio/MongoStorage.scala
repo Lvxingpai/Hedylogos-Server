@@ -1,6 +1,7 @@
 package core.mio
 
-import models.{Message, MorphiaFactory}
+import core.connector.MorphiaFactory
+import models.Message
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 

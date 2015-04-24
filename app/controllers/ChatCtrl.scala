@@ -7,7 +7,8 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
 
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 /**
  * Created by zephyre on 4/23/15.
@@ -28,12 +29,12 @@ object ChatCtrl extends Controller {
         Chat.sendMessage(msgType, contents, recvId.get, senderId)
 
       futureMsg.map(msg => {
-        val result = Seq(
+        val result = JsObject(Seq(
           "conversation" -> JsString(msg.getConversation.toString),
           "msgId" -> JsNumber(msg.getMsgId.toLong),
           "timestamp" -> JsNumber(msg.getTimestamp.toLong)
-        )
-        Helpers.JsonResponseBlocked(data = JsObject(result))
+        ))
+        Helpers.JsonResponse(data = Some(result))
       })
     }
   }
@@ -42,14 +43,18 @@ object ChatCtrl extends Controller {
     request => {
       val jsonNode = request.body.asJson.get
       val msgList = (jsonNode \ "msgList").asInstanceOf[JsArray].value.map(_.asOpt[String].get)
-      Chat.acknowledge(user, msgList)
+      val futureMsgList = _fetchMessages(user)
 
-      Helpers.JsonResponse(data = _fetchMessages(user))
+      Chat.acknowledge(user, msgList).map(_ => {
+        Await.result(futureMsgList.map(v => Helpers.JsonResponse(data = Some(v))), Duration.Inf)
+      })
     }
   }
 
   def fetchMessages(user: Long) = Action.async {
-    Helpers.JsonResponse(data = _fetchMessages(user))
+    Chat.fetchMessage(user).map(msgSeq => {
+      Helpers.JsonResponse(data = Some(JsArray(msgSeq.map(MessageFormatter.format))))
+    })
   }
 
   def _fetchMessages(user: Long): Future[JsValue] = {

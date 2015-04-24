@@ -1,6 +1,6 @@
 import com.mongodb.ServerAddress
-import models.{HedyRedis, MorphiaFactory}
-import play.api.{Logger, Application, GlobalSettings}
+import core.connector.{HedyRedis, MorphiaFactory}
+import play.api.{Application, GlobalSettings, Logger}
 
 object Global extends GlobalSettings {
 

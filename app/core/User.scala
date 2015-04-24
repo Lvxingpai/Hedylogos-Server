@@ -1,6 +1,6 @@
 package core
 
-import models.HedyRedis
+import core.connector.HedyRedis
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.mutable.ArrayBuffer
@@ -17,22 +17,23 @@ object User {
 
   def login(userId: Long, regId: String, deviceToken: Option[String] = None): Future[Unit] = {
     Future {
-      HedyRedis.client.hmset(userId2key(userId),
+      HedyRedis.clientsPool.withClient(_.hmset(userId2key(userId),
         Map("regId" -> regId, "deviceToken" -> deviceToken.getOrElse(""), "loginTs" -> System.currentTimeMillis,
           "status" -> "login"))
+      )
     }
   }
 
   def logout(userId: Long): Future[Unit] = {
     Future {
-      HedyRedis.client.hmset(userId2key(userId),
-        Map("logoutTs" -> System.currentTimeMillis, "status" -> "logout"))
+      HedyRedis.clientsPool.withClient(_.hmset(userId2key(userId),
+        Map("logoutTs" -> System.currentTimeMillis, "status" -> "logout")));
     }
   }
 
   def loginInfo(userId: Long): Future[Option[Map[String, Any]]] = {
     Future {
-      val result = HedyRedis.client.hgetall[String, String](userId2key(userId)).get
+      val result = HedyRedis.clientsPool.withClient(_.hgetall[String, String](userId2key(userId)).get)
       val items = ArrayBuffer[(String, Any)]()
       if (result.nonEmpty) {
         Array("regId", "status").foreach(key => items += key -> result(key))
@@ -48,5 +49,5 @@ object User {
     }
   }
 
-  def destroyUser(userId: Long): Unit = HedyRedis.client.del(userId2key(userId))
+  def destroyUser(userId: Long): Unit = HedyRedis.clientsPool.withClient(_.del(userId2key(userId)))
 }

@@ -1,6 +1,7 @@
 package core
 
 import com.mongodb.DuplicateKeyException
+import core.connector.{HedyRedis, MorphiaFactory}
 import core.mio.{GetuiService, MongoStorage, RedisMessaging}
 import models._
 import org.bson.types.ObjectId
@@ -28,7 +29,7 @@ object Chat {
 
   def destroyConversation(cid: ObjectId): Unit = {
     ds.delete(classOf[Conversation], cid)
-    HedyRedis.client.del(s"$cid.msgId")
+    HedyRedis.clientsPool.withClient(_.del(s"$cid.msgId"))
   }
 
   /**
@@ -62,7 +63,7 @@ object Chat {
    */
   def generateMsgId(cid: ObjectId): Future[Option[Long]] = {
     Future {
-      HedyRedis.client.incr(s"$cid.msgId")
+      HedyRedis.clientsPool.withClient(_.incr(s"$cid.msgId"))
     }
   }
 
@@ -74,7 +75,7 @@ object Chat {
    */
   def msgId(cid: ObjectId): Future[Option[Long]] = {
     Future {
-      val result: Option[String] = HedyRedis.client.get(s"$cid.msgId")
+      val result: Option[String] = HedyRedis.clientsPool.withClient(_.get(s"$cid.msgId"))
       if (result != None) Some(result.get.toLong) else None
     }
   }
@@ -122,15 +123,15 @@ object Chat {
     val futureConv = Chat.singleConversation(sender, receiver)
 
     futureConv.map(conv => {
-        Await.result(sendMessage(msgType, contents, conv.get.getId, sender), Duration.Inf)
-      })
+      Await.result(sendMessage(msgType, contents, conv.get.getId, sender), Duration.Inf)
+    })
   }
 
   def fetchMessage(userId: Long): Future[Seq[Message]] = {
     RedisMessaging.fetchMessages(userId)
   }
 
-  def acknowledge(userId: Long, msgIdList: Seq[String]): Unit = {
+  def acknowledge(userId: Long, msgIdList: Seq[String]): Future[Unit] = {
     RedisMessaging.acknowledge(userId, msgIdList)
   }
 }
