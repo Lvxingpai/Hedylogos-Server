@@ -10,7 +10,6 @@ import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 
@@ -67,23 +66,25 @@ object GetuiService extends MessageDeliever {
   override def sendMessage(message: Message, targets: Seq[Long]): Future[Message] = {
     // 将targets中的userId取出来，读取regId（类型：Seq[String]）
     def userId2regId(userId: Long): Future[Option[String]] = {
-      val futureLoginInfo = User.loginInfo(userId)
-      futureLoginInfo.map(
-        userInfoMap => userInfoMap.flatMap(_.get("regId").flatMap(v => Some(v.toString))))
+      for {
+        optionMap <- User.loginInfo(userId)
+      } yield for {
+        m <- optionMap
+        regId <- m.get("regId")
+      } yield regId.toString
     }
 
-    val futureUserList: Future[ArrayBuffer[Option[String]]] =
-      Future.fold(targets.map(userId2regId))(ArrayBuffer[Option[String]]())(
-        (regIdList, regId) => {
-          regIdList += regId
-          regIdList
-        }
-      )
+    // targets => Future[Seq[String]] (regIdList)
+    val regIdList = for {
+      values <- Future.sequence(targets.map(userId2regId)) // Future[Seq[Option[String]]]
+    } yield for {
+        opt <- values if opt.nonEmpty
+        regId <- opt.get
+      } yield regId.toString
 
-    futureUserList.map(targets => {
-      sendTransmission(message, targets.filter(_.nonEmpty).map(_.get))
+    regIdList.map(targets => {
+      sendTransmission(message, targets)
       message
     })
-
   }
 }
