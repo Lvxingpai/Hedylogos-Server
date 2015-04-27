@@ -1,3 +1,5 @@
+import play.api.test.FakeRequest
+
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
@@ -9,4 +11,5 @@ trait SyncInvoke {
     Await.result(future, Duration.Inf).asInstanceOf[T]
   }
 
+  def buildRequest[T](req: FakeRequest[T]): FakeRequest[T] = req.withHeaders("Content-Type"->"application/json")
 }

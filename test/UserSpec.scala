@@ -2,19 +2,37 @@ import core.User
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import play.api.test.WithApplication
+import play.api.libs.json.{JsNumber, JsObject, JsString}
+import play.api.mvc.Result
+import play.api.test.Helpers._
+import play.api.test._
 
 @RunWith(classOf[JUnitRunner])
 class UserSpec extends Specification with SyncInvoke {
 
+  val regId = "abcdef"
+  val userId = 1001
+
   "User operations" should {
-    "login/logout" in new WithApplication {
-      val userId = 1001
-
+    "Respond to POST login/logout" in new WithApplication {
       try {
-        val regId = "abcdef"
-        val dt = Some("mnopq")
+        val loginBody = JsObject(Seq("userId" -> JsNumber(userId), "regId" -> JsString(regId)))
+        val logoutBody = JsObject(Seq("userId" -> JsNumber(userId)))
+        val loginReq = buildRequest(FakeRequest(Helpers.POST, controllers.routes.UserCtrl.login().url))
+          .withJsonBody(loginBody)
+        val logoutReq = buildRequest(FakeRequest(Helpers.POST, controllers.routes.UserCtrl.logout().url))
+          .withJsonBody(logoutBody)
 
+        Seq(loginReq, logoutReq) foreach (v => {
+          syncInvoke[Result](route(v).get).header.status must beEqualTo(200)
+        })
+      } finally {
+        User.destroyUser(userId)
+      }
+    }
+
+    "login/logout" in new WithApplication {
+      try {
         val ts = System.currentTimeMillis
         val info1 = syncInvoke[Option[Map[String, Any]]](User.loginInfo(userId))
         syncInvoke(User.login(userId, regId))

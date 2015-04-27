@@ -9,10 +9,6 @@ POST        /users/login            controllers.UserCtrl.login
 
 POST        /users/logout           controllers.UserCtrl.logout
 
-#GET         /test                   controllers.Application.getUserDetails(user:Long)
-#
-#POST        /users/login        controllers.UserCtrl.login()
-
 POST        /chats                  controllers.ChatCtrl.sendMessage()
 
 GET         /chats/:user            controllers.ChatCtrl.fetchMessages(user:Long)
