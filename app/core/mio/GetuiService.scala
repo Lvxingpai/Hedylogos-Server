@@ -60,7 +60,7 @@ object GetuiService extends MessageDeliever {
       val contentId = gtPush.getContentId(message.asInstanceOf[ListMessage])
       gtPush.pushMessageToList(contentId, targetList)
     }
-    Logger.debug("Push result: %s".format(pushResult.getResponse.toString))
+    Logger.debug("Push result: target=%s, %s".format(clientIdList mkString ",", pushResult.getResponse.toString))
   }
 
   override def sendMessage(message: Message, targets: Seq[Long]): Future[Message] = {
@@ -74,13 +74,11 @@ object GetuiService extends MessageDeliever {
       } yield regId.toString
     }
 
-    // targets => Future[Seq[String]] (regIdList)
     val regIdList = for {
       values <- Future.sequence(targets.map(userId2regId)) // Future[Seq[Option[String]]]
     } yield for {
         opt <- values if opt.nonEmpty
-        regId <- opt.get
-      } yield regId.toString
+      } yield opt.get
 
     regIdList.map(targets => {
       sendTransmission(message, targets)
