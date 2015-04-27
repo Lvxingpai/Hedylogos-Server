@@ -16,3 +16,4 @@ dist
 *.jar
 activator
 activator.bat
+conf
