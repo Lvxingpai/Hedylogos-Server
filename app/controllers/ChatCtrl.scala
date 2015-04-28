@@ -5,7 +5,7 @@ import core.json.MessageFormatter
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
-import play.api.mvc.{Action, Controller}
+import play.api.mvc.{Action, AnyContent, Controller, Request, Result}
 
 import scala.concurrent.Future
 
@@ -13,30 +13,54 @@ import scala.concurrent.Future
  * Created by zephyre on 4/23/15.
  */
 object ChatCtrl extends Controller {
+
+  case class MessageInfo(senderId: Long, receiverId: Option[Long], cid: Option[ObjectId], msgType: Int,
+                         contents: Option[String])
+
+  private def sendMessageImpl(msgInfo: MessageInfo): Future[Result] = {
+    val cid = msgInfo.cid
+
+    val futureMsg = if (cid.nonEmpty)
+      Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.senderId)
+    else
+      Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId)
+
+    futureMsg.map(msg => {
+      val result = JsObject(Seq(
+        "conversation" -> JsString(msg.getConversation.toString),
+        "msgId" -> JsNumber(msg.getMsgId.toLong),
+        "timestamp" -> JsNumber(msg.getTimestamp.toLong)
+      ))
+      Helpers.JsonResponse(data = Some(result))
+    })
+  }
+
+  def sendMessageQiniu(request: Request[AnyContent]) = {
+    val postBody = request.body.asFormUrlEncoded.get
+    val postMap = postBody.filter((item: (String, Seq[String])) => item._2.nonEmpty).mapValues(_(0))
+
+    val senderId = postMap.get("sender").get.toLong
+    val recvId = postMap.get("receiver").map(_.toLong)
+    val cid = postMap.get("conversation").map(v => new ObjectId(v))
+    val msgType = postMap.get("msgType").get.toInt
+    val contents = None
+
+    sendMessageImpl(MessageInfo(senderId, recvId, cid, msgType, contents))
+  }
+
   def sendMessage() = Action.async {
     request => {
       val jsonNode = request.body.asJson.get
       val senderId = (jsonNode \ "sender").asOpt[Long].get
       val recvId = (jsonNode \ "receiver").asOpt[Long]
-      val cid = (jsonNode \ "conversation").asOpt[String]
+      val cid = (jsonNode \ "conversation").asOpt[String].map(v => new ObjectId(v))
       val msgType = (jsonNode \ "msgType").asOpt[Int].get
-      val contents = (jsonNode \ "contents").asOpt[String].get
+      val contents = (jsonNode \ "contents").asOpt[String]
 
-      val futureMsg = if (cid.nonEmpty)
-        Chat.sendMessage(msgType, contents, new ObjectId(cid.get), senderId)
-      else
-        Chat.sendMessage(msgType, contents, recvId.get, senderId)
-
-      futureMsg.map(msg => {
-        val result = JsObject(Seq(
-          "conversation" -> JsString(msg.getConversation.toString),
-          "msgId" -> JsNumber(msg.getMsgId.toLong),
-          "timestamp" -> JsNumber(msg.getTimestamp.toLong)
-        ))
-        Helpers.JsonResponse(data = Some(result))
-      })
+      sendMessageImpl(MessageInfo(senderId, recvId, cid, msgType, contents))
     }
   }
+
 
   def acknowledge(user: Long) = Action.async {
     request => {

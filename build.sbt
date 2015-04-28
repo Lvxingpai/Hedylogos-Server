@@ -18,6 +18,7 @@ libraryDependencies ++= Seq(
   "commons-codec" % "commons-codec" % "1.10",
   "commons-collections" % "commons-collections" % "3.2.1",
   "net.debasishg" %% "redisclient" % "2.15",
+  "com.qiniu" % "qiniu-java-sdk" % "7.0.0",
   jdbc,
   anorm,
   cache,
