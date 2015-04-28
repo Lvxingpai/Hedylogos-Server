@@ -1,13 +1,13 @@
 package controllers
 
-import java.io.File
+import java.util.Base64
 
-import com.qiniu.storage.UploadManager
 import core.qiniu.QiniuClient
+import org.bson.types.ObjectId
+import play.api.Play
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
-import play.api.{Logger, Play}
 
 /**
  * Created by zephyre on 4/25/15.
@@ -17,18 +17,14 @@ object MiscCtrl extends Controller {
   /**
    * 获得发送消息的七牛上传token
    *
-   * @param jsonBody
    * @return
    */
-  private def sendMessageToken(bucket: String = "imres", key: String, jsonBody: JsValue): String = {
+  private def sendMessageToken(bucket: String = "imres", key: String): String = {
     // 生成Map(location->x:location, price->x:price)之类的用户自定义变量
     // 参见：http://developer.qiniu.com/docs/v6/api/overview/up/response/vars.html#xvar
-    val extParamters: Map[String, String] =
-      Map(jsonBody.asInstanceOf[JsObject].keys filter (_ startsWith "x:") map
-        (key => (key substring 2) -> "$(%s)".format(key)) toSeq: _*)
 
     // 生成urlencoded格式的数据
-    def urlencoder(m: Map[String, String]): String = {
+    def urlencode(m: Map[String, String]): String = {
       val termList = for {
         (k, v) <- m
       } yield s"$k=$v"
@@ -36,8 +32,17 @@ object MiscCtrl extends Controller {
       termList mkString "&"
     }
 
-    val locParams = Seq("bucket" -> "$(bucket)", "key" -> "$(key)", "etag" -> "$(etag)", "caller" -> "qiniu")
-    val params = Map(locParams ++ extParamters.toSeq: _*)
+    // 自定义变量
+    val customParams = for {
+      key <- Seq("sender", "receiver", "conversation", "msgType", "action")
+    } yield key -> "$(x:%s)".format(key)
+
+    // 魔法变量
+    val magicParams = for {
+      key <- Seq("bucket", "etag", "fname", "fsize", "mimeType", "imageInfo")
+    } yield key -> "$(%s)".format(key)
+
+    val params = urlencode(Map(customParams ++ magicParams :+ "action"-> "1": _*))
 
     val host = Play.configuration.getString("server.host").get
     val scheme = Play.configuration.getString("server.scheme").get
@@ -48,29 +53,22 @@ object MiscCtrl extends Controller {
     val deadline = System.currentTimeMillis / 1000 + expire
     val putPolicy = Map(
       "scope" -> s"$bucket:$key",
+      "saveKey" -> key,
       "deadline" -> deadline.toString,
       "callbackUrl" -> callbackUrl,
-      "callbackHost" -> host,
-      "callbackBody" -> urlencoder(params)
-//      "returnBody" -> Json.toJson(params).toString
-//      "mimeLimit" -> "image/tiff;image/jpeg;image/png"
+      "callbackBody" -> params
+      //      "mimeLimit" -> "image/tiff;image/jpeg;image/png"
     )
-    QiniuClient.uploadToken(key, expire = expire, policy = putPolicy)
-  }
-
-  private def upload(key: String, token: String): Unit = {
-    val uploadMgr = new UploadManager
-    val response = uploadMgr.put(new File("/Users/zephyre/Desktop/zen-297x300.jpg"), key, token)
-    Logger.info(response.toString)
-
+    QiniuClient.uploadToken(key, expire = deadline, policy = putPolicy)
   }
 
   def uploadToken = Action {
     request => {
       val jsonBody = request.body.asJson.get
-      val key = java.util.UUID.randomUUID.toString
+      //      val key = new ObjectId().toString//java.util.UUID.randomUUID.toString
+      val key = Base64.getEncoder.encodeToString(new ObjectId().toByteArray)
       val token = (jsonBody \ "action").asOpt[Int].get match {
-        case 1 => sendMessageToken(key = key, jsonBody = jsonBody)
+        case 1 => sendMessageToken(key = key)
         case _ => throw new IllegalArgumentException
       }
 

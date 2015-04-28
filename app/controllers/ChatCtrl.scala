@@ -37,7 +37,9 @@ object ChatCtrl extends Controller {
 
   def sendMessageQiniu(request: Request[AnyContent]) = {
     val postBody = request.body.asFormUrlEncoded.get
-    val postMap = postBody.filter((item: (String, Seq[String])) => item._2.nonEmpty).mapValues(_(0))
+    // 过滤：Seq[String]不为空，并且其内容不为空字符串
+    val postMap = Map(postBody.toSeq filter ((item: (String, Seq[String])) =>
+      item._2.nonEmpty && item._2(0).nonEmpty): _*).mapValues(_(0))
 
     val senderId = postMap.get("sender").get.toLong
     val recvId = postMap.get("receiver").map(_.toLong)
