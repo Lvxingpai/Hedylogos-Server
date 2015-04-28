@@ -3,14 +3,18 @@
 # ~~~~
 
 # Home page
-GET         /                       controllers.Application.index
+GET         /                              controllers.Application.index
 
-POST        /users/login            controllers.UserCtrl.login
+POST        /users/login                   controllers.UserCtrl.login
 
-POST        /users/logout           controllers.UserCtrl.logout
+POST        /users/logout                  controllers.UserCtrl.logout
 
-POST        /chats                  controllers.ChatCtrl.sendMessage()
+POST        /upload/token-generator        controllers.MiscCtrl.uploadToken
 
-GET         /chats/:user            controllers.ChatCtrl.fetchMessages(user:Long)
+POST        /chats                         controllers.ChatCtrl.sendMessage
 
-POST        /chats/:user/ack        controllers.ChatCtrl.acknowledge(user:Long)
+POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
+
+GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
+
+POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user:Long)
