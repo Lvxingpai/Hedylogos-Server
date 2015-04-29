@@ -19,8 +19,6 @@ POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user
 
 GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 
-POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user:Long)
 #群组
-#获取所有群组
 POST        /groups                        controllers.GroupCtrl.createGroup()
 
