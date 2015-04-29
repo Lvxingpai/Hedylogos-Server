@@ -1,21 +1,21 @@
 package core.qiniu
 
 import com.qiniu.util.{Auth, StringMap}
-import play.api.Play
-import play.api.Play.current
+import play.api.Configuration
+import core.GlobalConfig.playConf
 
 /**
  * Created by zephyre on 4/25/15.
  */
 object QiniuClient {
 
-  private def getConfig: Map[String, String] =
-    Map("accessKey" -> Play.configuration.getString("qiniu.accessKey").get,
-      "secretKey" -> Play.configuration.getString("qiniu.secretKey").get)
+  private def getConfig(implicit playConf: Configuration): Map[String, String] =
+    Map("accessKey" -> playConf.getString("qiniu.accessKey").get,
+      "secretKey" -> playConf.getString("qiniu.secretKey").get)
 
-  val secretKey = getConfig("secretKey")
+  val secretKey = getConfig apply "secretKey"
 
-  val accessKey = getConfig("accessKey")
+  val accessKey = getConfig apply "accessKey"
 
   val auth = Auth.create(accessKey, secretKey)
 
