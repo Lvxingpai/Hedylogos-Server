@@ -14,15 +14,14 @@ import play.api.test.WithApplication
  * Created by zephyre on 4/20/15.
  */
 @RunWith(classOf[JUnitRunner])
-class ChatSpec extends Specification {
+class ChatSpec extends Specification with SyncInvoke {
   "Chat core functionality" should {
     "Lookup peer-to-peer conversations" in new WithApplication() {
       val userA: Long = 903
       val userB: Long = 901
       val fp = s"$userB.$userA"
       try {
-
-        val c = Chat.singleConversation(userA, userB).get
+        val c = syncInvoke[Option[Conversation]](Chat.singleConversation(userA, userB)).get
         c.getCreateTime must beEqualTo(c.getUpdateTime)
 
         c.getFingerprint must beEqualTo(fp)
@@ -35,17 +34,17 @@ class ChatSpec extends Specification {
     }
 
     "Handle message IDs" in new WithApplication() {
-      val cid = new ObjectId()
+      val cid = new ObjectId
       try {
-        val msgId1 = Chat.msgId(cid)
-        val msgId2 = Chat.generateMsgId(cid)
-        val msgId3 = Chat.msgId(cid)
+        val msgId1 = syncInvoke[Option[Long]](Chat.msgId(cid))
+        val msgId2 = syncInvoke[Option[Long]](Chat.generateMsgId(cid))
+        val msgId3 = syncInvoke[Option[Long]](Chat.msgId(cid))
 
         msgId1 must beEqualTo(None)
         msgId2.get must beEqualTo(1)
         msgId3.get must beEqualTo(1)
       } finally {
-        HedyRedis.client.del(s"$cid.msgId")
+        HedyRedis.clients.withClient(_.del(s"$cid.msgId"))
       }
     }
 
@@ -53,22 +52,30 @@ class ChatSpec extends Specification {
       val sender = 901
       val receiver = 903
 
-      val c = Chat.singleConversation(sender, receiver).get
-      val msg = Chat.buildMessage(1, "Test", c.getId, sender)
+      val conv = for {
+        optConv <- Chat.singleConversation(sender, receiver)
+      } yield optConv.get
+
+      val msg = syncInvoke[Message](for {
+        c <- conv
+        m <- Chat.buildMessage(1, "Test", c.getId, sender)
+      } yield m)
+
+      val c = msg.getConversation
 
       try {
-        User.login(receiver, "064d067e917222969111548c83f6664d", None)
+        syncInvoke[Unit](User.login(receiver, "064d067e917222969111548c83f6664d", None))
 
         val inspectMsg = (method: String, msg: Message) => classOf[Message].getMethod(method).invoke(msg)
         val checkedFields = classOf[Message].getDeclaredMethods.filter(m =>
           m.getName.startsWith("get") && Modifier.isPublic(m.getModifiers)).map(_.getName)
 
-        RedisMessaging.sendMessage(msg, Seq(receiver))
-        MongoStorage.sendMessage(msg, Seq(receiver))
-        GetuiService.sendMessage(msg, Seq(receiver))
+        syncInvoke(RedisMessaging.sendMessage(msg, Seq(receiver)))
+        syncInvoke(MongoStorage.sendMessage(msg, Seq(receiver)))
+        syncInvoke(GetuiService.sendMessage(msg, Seq(receiver)))
 
-        val mongoMsgList = MongoStorage.fetchMessages(Seq(msg.getId))
-        val redisMsgList = RedisMessaging.fetchMessages(receiver)
+        val mongoMsgList = syncInvoke[Seq[Message]](MongoStorage.fetchMessages(Seq(msg.getId)))
+        val redisMsgList = syncInvoke[Seq[Message]](RedisMessaging.fetchMessages(receiver))
 
         redisMsgList.length must beEqualTo(1)
         checkedFields.foreach(key => inspectMsg(key, redisMsgList(0)) must beEqualTo(inspectMsg(key, msg)))
@@ -76,7 +83,7 @@ class ChatSpec extends Specification {
         mongoMsgList.length must beEqualTo(1)
         checkedFields.foreach(key => inspectMsg(key, mongoMsgList(0)))
       } finally {
-        Chat.destroyConversation(c.getId)
+        Chat.destroyConversation(c)
         MongoStorage.destroyMessage(Seq(msg.getId))
         RedisMessaging.destroyFetchSets(Seq(receiver))
         User.destroyUser(receiver)

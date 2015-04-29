@@ -37,7 +37,12 @@ object User {
       val items = ArrayBuffer[(String, Any)]()
       if (result.nonEmpty) {
         Array("regId", "status").foreach(key => items += key -> result(key))
-        Array("loginTs", "logoutTs").foreach(key => items += key -> result.get(key).flatMap(v => Some(v.toLong)))
+        Array("loginTs", "logoutTs").foreach(key => {
+          val value = for {
+            k <- result.get(key)
+          } yield k.toLong
+          items += key -> value
+        })
 
         val dtKey = "deviceToken"
         items += dtKey -> result.get(dtKey)

@@ -107,20 +107,30 @@ object Chat {
     val futureMsg = buildMessage(msgType, contents, cid, sender)
     val futureConv = conversation(cid)
     val futureTargets = futureConv.map(v => {
-      Set(v.get.getParticipants.filter(_ != sender).map(scala.Long.unbox(_)): _*)
+      Set(v.get.getParticipants.filter(_ != sender).map(scala.Long.unbox(_)): _*).toSeq
     })
-    Seq(MongoStorage, RedisMessaging, GetuiService).foreach(service => futureTargets.map(
-      targets => {
-        futureMsg.map(msg => {
-          service sendMessage(msg, targets.toSeq)
-        })
-      }))
-    futureMsg
+
+    val mongoResult = for {
+      targets <- futureTargets
+      msg <- futureMsg
+      result <- MongoStorage.sendMessage(msg, targets)
+    } yield result
+
+    for {
+      targets <- futureTargets
+      msg <- mongoResult
+      redisResult <- RedisMessaging.sendMessage(msg, targets)
+      getuiResult <- GetuiService.sendMessage(redisResult, targets)
+    } yield getuiResult
+
+    mongoResult
   }
 
   def sendMessage(msgType: Int, contents: String, receiver: Long, sender: Long): Future[Message] = {
-    val futureConv = Chat.singleConversation(sender, receiver)
-    futureConv.flatMap(conv => sendMessage(msgType, contents, conv.get.getId, sender))
+    for {
+      c <- Chat.singleConversation(sender, receiver)
+      msg <- sendMessage(msgType, contents, c.get.getId, sender)
+    } yield msg
   }
 
   def fetchMessage(userId: Long): Future[Seq[Message]] = {

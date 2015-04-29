@@ -3,22 +3,24 @@
 # ~~~~
 
 # Home page
-GET         /                       controllers.Application.index
+GET         /                              controllers.Application.index
 
-POST        /users/login            controllers.UserCtrl.login
+POST        /users/login                   controllers.UserCtrl.login
 
-POST        /users/logout           controllers.UserCtrl.logout
+POST        /users/logout                  controllers.UserCtrl.logout
 
-#GET         /test                   controllers.Application.getUserDetails(user:Long)
-#
-#POST        /users/login        controllers.UserCtrl.login()
+POST        /upload/token-generator        controllers.MiscCtrl.uploadToken
 
-POST        /chats                  controllers.ChatCtrl.sendMessage()
+POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
 
-GET         /chats/:user            controllers.ChatCtrl.fetchMessages(user:Long)
+POST        /chats                         controllers.ChatCtrl.sendMessage
 
-POST        /chats/:user/ack        controllers.ChatCtrl.acknowledge(user:Long)
+POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user:Long)
 
+GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
+
+POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user:Long)
 #群组
 #获取所有群组
-POST        /groups                 controllers.GroupCtrl.createGroup()
+POST        /groups                        controllers.GroupCtrl.createGroup()
+
