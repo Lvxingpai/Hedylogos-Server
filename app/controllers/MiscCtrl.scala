@@ -1,13 +1,10 @@
 package controllers
 
-import java.util.Base64
-
 import core.qiniu.QiniuClient
-import org.bson.types.ObjectId
-import play.api.Play
-import play.api.Play.current
+import play.api.Configuration
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
+import core.GlobalConfig.playConf
 
 /**
  * Created by zephyre on 4/25/15.
@@ -19,7 +16,7 @@ object MiscCtrl extends Controller {
    *
    * @return
    */
-  private def sendMessageToken(bucket: String = "imres", key: String): String = {
+  private def sendMessageToken(bucket: String = "imres", key: String)(implicit playConf: Configuration): String = {
     // 生成Map(location->x:location, price->x:price)之类的用户自定义变量
     // 参见：http://developer.qiniu.com/docs/v6/api/overview/up/response/vars.html#xvar
 
@@ -42,10 +39,10 @@ object MiscCtrl extends Controller {
       key <- Seq("bucket", "etag", "fname", "fsize", "mimeType", "imageInfo")
     } yield key -> "$(%s)".format(key)
 
-    val params = urlencode(Map(customParams ++ magicParams :+ "action"-> "1": _*))
+    val params = urlencode(Map(customParams ++ magicParams :+ "action" -> "1": _*))
 
-    val host = Play.configuration.getString("server.host").get
-    val scheme = Play.configuration.getString("server.scheme").get
+    val host = playConf.getString("server.host").get
+    val scheme = playConf.getString("server.scheme").get
     val href = routes.MiscCtrl.qiniuCallback().url
     val callbackUrl = s"$scheme://$host$href"
     val expire = 3600
@@ -65,8 +62,7 @@ object MiscCtrl extends Controller {
   def uploadToken = Action {
     request => {
       val jsonBody = request.body.asJson.get
-      //      val key = new ObjectId().toString//java.util.UUID.randomUUID.toString
-      val key = Base64.getEncoder.encodeToString(new ObjectId().toByteArray)
+      val key = java.util.UUID.randomUUID.toString
       val token = (jsonBody \ "action").asOpt[Int].get match {
         case 1 => sendMessageToken(key = key)
         case _ => throw new IllegalArgumentException

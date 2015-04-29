@@ -7,5 +7,5 @@ import play.api.Play.current
  * Created by zephyre on 4/17/15.
  */
 object GlobalConfig {
-  val playConf = Play.configuration
+  implicit val playConf = Play.configuration
 }
