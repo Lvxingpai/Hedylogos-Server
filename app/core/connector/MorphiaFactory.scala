@@ -23,6 +23,6 @@ object MorphiaFactory {
 
   def initialize(serverList: Seq[ServerAddress]): Unit = {
     client = new MongoClient(serverList)
-    morphia.map(classOf[Conversation])
+    //morphia.map(classOf[Conversation])
   }
 }
