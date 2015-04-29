@@ -5,7 +5,7 @@ import core.json.MessageFormatter
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, Controller, Request, Result}
+import play.api.mvc.{Action, Controller, Result}
 
 import scala.concurrent.Future
 
@@ -17,7 +17,7 @@ object ChatCtrl extends Controller {
   case class MessageInfo(senderId: Long, receiverId: Option[Long], cid: Option[ObjectId], msgType: Int,
                          contents: Option[String])
 
-  private def sendMessageImpl(msgInfo: MessageInfo): Future[Result] = {
+  def sendMessageBase(msgInfo: MessageInfo): Future[Result] = {
     val cid = msgInfo.cid
 
     val futureMsg = if (cid.nonEmpty)
@@ -35,21 +35,6 @@ object ChatCtrl extends Controller {
     })
   }
 
-  def sendMessageQiniu(request: Request[AnyContent]) = {
-    val postBody = request.body.asFormUrlEncoded.get
-    // 过滤：Seq[String]不为空，并且其内容不为空字符串
-    val postMap = Map(postBody.toSeq filter ((item: (String, Seq[String])) =>
-      item._2.nonEmpty && item._2(0).nonEmpty): _*).mapValues(_(0))
-
-    val senderId = postMap.get("sender").get.toLong
-    val recvId = postMap.get("receiver").map(_.toLong)
-    val cid = postMap.get("conversation").map(v => new ObjectId(v))
-    val msgType = postMap.get("msgType").get.toInt
-    val contents = None
-
-    sendMessageImpl(MessageInfo(senderId, recvId, cid, msgType, contents))
-  }
-
   def sendMessage() = Action.async {
     request => {
       val jsonNode = request.body.asJson.get
@@ -59,7 +44,7 @@ object ChatCtrl extends Controller {
       val msgType = (jsonNode \ "msgType").asOpt[Int].get
       val contents = (jsonNode \ "contents").asOpt[String]
 
-      sendMessageImpl(MessageInfo(senderId, recvId, cid, msgType, contents))
+      sendMessageBase(MessageInfo(senderId, recvId, cid, msgType, contents))
     }
   }
 

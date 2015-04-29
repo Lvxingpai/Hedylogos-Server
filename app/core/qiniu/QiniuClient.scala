@@ -37,5 +37,4 @@ object QiniuClient {
     auth.privateDownloadUrl(baseUrl, expireSec)
 
   def privateDownloadUrl(baseUrl: String): String = auth.privateDownloadUrl(baseUrl)
-
 }
