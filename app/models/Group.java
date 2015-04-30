@@ -3,6 +3,7 @@ package models;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Indexed;
+import org.mongodb.morphia.annotations.Transient;
 
 import java.util.List;
 
@@ -12,7 +13,31 @@ import java.util.List;
 @Entity
 public class Group extends AbstractEntity {
 
-    private String fingerprint;
+    @Transient
+    public static String FD_GROUPID = "groupId";
+
+    @Transient
+    public static String FD_NAME = "name";
+
+    @Transient
+    public static String FD_DESC = "desc";
+
+    @Transient
+    public static String FD_TYPE = "type";
+
+    @Transient
+    public static String FD_AVATAR = "avatar";
+
+    @Transient
+    public static String FD_TAGS = "tags";
+
+    @Transient
+    public static String FD_CREATOR = "creator";
+    @Transient
+    public static String FD_MAXUSERS = "maxUsers";
+
+    @Transient
+    public static String FD_VISIBLE = "visible";
 
     @Indexed(unique = true)
     private Long groupId;
@@ -35,6 +60,8 @@ public class Group extends AbstractEntity {
 
     private Long msgCounter;
 
+    private Integer maxUsers;
+
     private Long createTime;
 
     private Long updateTime;
@@ -52,7 +79,6 @@ public class Group extends AbstractEntity {
         c.type = groupType;
         c.visible = isPublic;
 
-        c.fingerprint = creator.toString();
         c.msgCounter = 0L;
         c.createTime = c.updateTime = System.currentTimeMillis();
         return c;
@@ -64,14 +90,6 @@ public class Group extends AbstractEntity {
 
     public void setGroupId(Long groupId) {
         this.groupId = groupId;
-    }
-
-    public String getFingerprint() {
-        return fingerprint;
-    }
-
-    public void setFingerprint(String fingerprint) {
-        this.fingerprint = fingerprint;
     }
 
     public String getName() {
@@ -168,5 +186,13 @@ public class Group extends AbstractEntity {
 
     public void setVisible(Boolean visible) {
         this.visible = visible;
+    }
+
+    public Integer getMaxUsers() {
+        return maxUsers;
+    }
+
+    public void setMaxUsers(Integer maxUsers) {
+        this.maxUsers = maxUsers;
     }
 }

@@ -21,4 +21,5 @@ GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(us
 
 #群组
 POST        /groups                        controllers.GroupCtrl.createGroup()
+PUT         /groups/:gId                   controllers.GroupCtrl.modifyGroup(gId:Long)
 
