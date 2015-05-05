@@ -17,6 +17,11 @@ object GroupCtrl extends Controller {
   val ACTION_ADDMEMBERS = "addMembers"
   val ACTION_DELMEMBERS = "delMembers"
 
+  /**
+   * 创建群组
+   *
+   * @return
+   */
   def createGroup() = Action.async {
     request => {
       val uid = request.headers.get("UserId").get.toLong
@@ -40,6 +45,12 @@ object GroupCtrl extends Controller {
     }
   }
 
+  /**
+   * 修改群组
+   *
+   * @param gid
+   * @return
+   */
   def modifyGroup(gid: Long) = Action.async {
     request => {
       val uid = request.headers.get("UserId").get.toLong
@@ -54,6 +65,12 @@ object GroupCtrl extends Controller {
     }
   }
 
+  /**
+   * 取得群组信息
+   *
+   * @param gid
+   * @return
+   */
   def getGroup(gid: Long) = Action.async {
     request => {
       val uid = request.headers.get("UserId").get.toLong
@@ -90,6 +107,12 @@ object GroupCtrl extends Controller {
     }
   }
 
+  /**
+   * 取得群组中的成员信息
+   *
+   * @param gid
+   * @return
+   */
   def getGroupUsers(gid: Long) = Action.async {
     request => {
       val uid = request.headers.get("UserId").get.toLong
@@ -109,22 +132,20 @@ object GroupCtrl extends Controller {
     }
   }
 
+  /**
+   * 操作群组
+   *
+   * @param gid
+   * @return
+   */
   def opGroup(gid: Long) = Action.async {
     request => {
       val uid = request.headers.get("UserId").get.toLong
       val jsonNode = request.body.asJson.get
-      val groupId = (jsonNode \ "groupId").asOpt[Long].get
-      val name = (jsonNode \ "name").asOpt[String]
-      val desc = (jsonNode \ "desc").asOpt[String]
-      val avatar = (jsonNode \ "avatar").asOpt[String]
-      val maxUsers = (jsonNode \ "maxUsers").asOpt[Int]
-      val isPublic = (jsonNode \ "isPublic").asOpt[Boolean]
-      val action = (jsonNode \ "action").asOpt[String]
-      val participants = (jsonNode \ "participants").asOpt[Array[String]]
-
-      Group.modifyGroup(groupId, name, desc, avatar, maxUsers, isPublic).map(v => Helpers.JsonResponse())
+      val action = (jsonNode \ "action").asOpt[String].get
+      val participants = (jsonNode \ "participants").asOpt[Array[Long]].get
+      Group.opGroup(gid, action, participants).map(v => Helpers.JsonResponse())
     }
   }
-
 
 }

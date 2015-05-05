@@ -34,11 +34,15 @@ public class Group extends AbstractEntity {
 
     @Transient
     public static String FD_CREATOR = "creator";
+
     @Transient
     public static String FD_MAXUSERS = "maxUsers";
 
     @Transient
     public static String FD_VISIBLE = "visible";
+
+    @Transient
+    public static String FD_PARTICIPANTS = "participants";
 
     @Indexed(unique = true)
     private Long groupId;

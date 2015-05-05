@@ -1,5 +1,6 @@
 package core
 
+import controllers.GroupCtrl
 import core.connector.MorphiaFactory
 import models._
 import org.mongodb.morphia.query.{Query, UpdateOperations}
@@ -81,6 +82,12 @@ object Group {
     }
   }
 
+  /**
+   * 取得群组信息
+   *
+   * @param gId
+   * @return
+   */
   def getGroup(gId: Long): Future[Group] = {
     Future {
       val query: Query[Group] = groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId)
@@ -88,6 +95,13 @@ object Group {
     }
   }
 
+  /**
+   * 取得用户信息
+   *
+   * @param uIds
+   * @param fields
+   * @return
+   */
   def getUserInfo(uIds: Seq[Long], fields: Seq[String] = null): Future[Seq[UserInfo]] = {
     Future {
       val queryUser: Query[UserInfo] = userDs.createQuery(classOf[UserInfo]).field(models.UserInfo.fnUserId).hasAnyOf(uIds map scala.Long.box)
@@ -96,5 +110,24 @@ object Group {
     }
   }
 
+  /**
+   * 操作群组，如添加删除成员
+   *
+   * @param gId
+   * @param action
+   * @param members
+   * @return
+   */
+  def opGroup(gId: Long, action: String, members: Seq[Long]): Future[Unit] = {
+    Future {
+      val ops: UpdateOperations[Group] = miscDs.createUpdateOperations(classOf[Group])
+      action match {
+        case GroupCtrl.ACTION_ADDMEMBERS => ops.addAll(models.Group.FD_PARTICIPANTS, members, false)
+        case GroupCtrl.ACTION_DELMEMBERS => ops.removeAll(models.Group.FD_PARTICIPANTS, members)
+        //case _ => return null
+      }
+      groupDs.updateFirst(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
+    }
+  }
 
 }
