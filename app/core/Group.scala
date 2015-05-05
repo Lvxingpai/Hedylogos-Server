@@ -88,11 +88,13 @@ object Group {
     }
   }
 
-  def getUserInfo(uIds: Seq[Long]): Future[Seq[UserInfo]] = {
+  def getUserInfo(uIds: Seq[Long], fields: Seq[String] = null): Future[Seq[UserInfo]] = {
     Future {
       val queryUser: Query[UserInfo] = userDs.createQuery(classOf[UserInfo]).field(models.UserInfo.fnUserId).hasAnyOf(uIds map scala.Long.box)
+      //if (fields != null && !fields.isEmpty) queryUser.retrievedFields(true, fields map (_.toString)).toArray)
       queryUser.asList().asScala
     }
   }
+
 
 }

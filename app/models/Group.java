@@ -78,9 +78,11 @@ public class Group extends AbstractEntity {
         c.groupId = groupId;
         c.creator = creator;
         c.admin = Arrays.asList(creator);
+
         c.name = name;
         c.type = groupType;
         c.visible = isPublic;
+        c.participants = Arrays.asList(creator);
         c.participantCnt = 1;
         c.maxUsers = 50;
         c.desc = "群主什么也不说";
