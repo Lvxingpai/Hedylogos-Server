@@ -2,9 +2,11 @@ package controllers
 
 
 import core.Group
+import core.json.{UserInfoSimpleFormatter, MessageFormatter}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
+import scala.collection.JavaConversions._
 
 /**
  * Created by topy on 2015/4/25.
@@ -46,5 +48,41 @@ object GroupCtrl extends Controller {
       Group.modifyGroup(groupId, name, desc, avatar, maxUsers, isPublic).map(v => Helpers.JsonResponse())
     }
   }
+
+  def getGroup(gid: Long) = Action.async {
+    request => {
+      val uid = request.headers.get("UserId").get.toLong
+
+      for {
+        group <- Group.getGroup(gid)
+        creator <- Group.getUserInfo(Seq(group.getCreator)) map (_(0))
+        admin <- Group.getUserInfo(group.getAdmin map scala.Long.unbox)
+      } yield {
+        val result = JsObject(Seq(
+          "groupId" -> JsNumber(group.getGroupId.toLong),
+          "name" -> JsString(group.getName),
+          "creator" -> JsNumber(group.getCreator.toLong),
+          "groupType" -> JsString(group.getType),
+          "isPublic" -> JsBoolean(group.getVisible),
+          "creator" -> JsObject(Seq(
+            "userId" -> JsNumber(creator.getUserId.toLong),
+            "nickName" -> JsString(creator.getNickName),
+            "avatar" -> JsString(creator.getAvatar)
+          )
+          ),
+          "admin" -> JsArray(admin.map(UserInfoSimpleFormatter.format)),
+          "desc" -> JsString(group.getDesc),
+          "maxUser" -> JsNumber(group.getMaxUsers.toInt),
+          "createTime" -> JsNumber(group.getCreateTime.toLong),
+          "updateTime" -> JsNumber(group.getUpdateTime.toLong),
+          "visible" -> JsBoolean(group.getVisible),
+          "participantsCnt" -> JsNumber(group.getParticipantCnt.toInt)
+        )
+        )
+        Helpers.JsonResponse(data = Some(result))
+      }
+    }
+  }
+
 
 }

@@ -4,6 +4,8 @@ import core.connector.MorphiaFactory
 import models._
 import org.mongodb.morphia.query.{Query, UpdateOperations}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 import scala.concurrent.Future
 
@@ -14,6 +16,7 @@ object Group {
   val ds = MorphiaFactory.getDatastore()
   val miscDs = MorphiaFactory.getDatastore("misc")
   val groupDs = MorphiaFactory.getDatastore("group")
+  val userDs = MorphiaFactory.getDatastore("user")
 
   /**
    * 创建群组
@@ -75,6 +78,20 @@ object Group {
           (isPublic, models.Group.FD_VISIBLE))
       } if (field.nonEmpty) ops.set(fieldStr, field.getOrElse())
       groupDs.updateFirst(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
+    }
+  }
+
+  def getGroup(gId: Long): Future[Group] = {
+    Future {
+      val query: Query[Group] = groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId)
+      query.get
+    }
+  }
+
+  def getUserInfo(uIds: Seq[Long]): Future[Seq[UserInfo]] = {
+    Future {
+      val queryUser: Query[UserInfo] = userDs.createQuery(classOf[UserInfo]).field(models.UserInfo.fnUserId).hasAnyOf(uIds map scala.Long.box)
+      queryUser.asList().asScala
     }
   }
 

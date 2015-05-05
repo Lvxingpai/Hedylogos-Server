@@ -5,6 +5,7 @@ import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Indexed;
 import org.mongodb.morphia.annotations.Transient;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -57,6 +58,7 @@ public class Group extends AbstractEntity {
     private List<Long> admin;
 
     private List<Long> participants;
+    private Integer participantCnt;
 
     private Long msgCounter;
 
@@ -75,9 +77,13 @@ public class Group extends AbstractEntity {
         c.id = new ObjectId();
         c.groupId = groupId;
         c.creator = creator;
+        c.admin = Arrays.asList(creator);
         c.name = name;
         c.type = groupType;
         c.visible = isPublic;
+        c.participantCnt = 1;
+        c.maxUsers = 50;
+        c.desc = "群主什么也不说";
 
         c.msgCounter = 0L;
         c.createTime = c.updateTime = System.currentTimeMillis();
@@ -194,5 +200,13 @@ public class Group extends AbstractEntity {
 
     public void setMaxUsers(Integer maxUsers) {
         this.maxUsers = maxUsers;
+    }
+
+    public Integer getParticipantCnt() {
+        return participantCnt;
+    }
+
+    public void setParticipantCnt(Integer participantCnt) {
+        this.participantCnt = participantCnt;
     }
 }
