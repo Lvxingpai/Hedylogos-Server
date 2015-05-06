@@ -6,9 +6,7 @@ import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.Indexed;
 import org.mongodb.morphia.annotations.Version;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Created by zephyre on 4/22/15.
@@ -46,6 +44,25 @@ public class Conversation extends AbstractEntity {
         c.id = new ObjectId();
         c.participants = Arrays.asList(min, max);
         c.fingerprint = String.format("%d.%d", min, max);
+        c.msgCounter = 0L;
+        c.createTime = c.updateTime = System.currentTimeMillis();
+        return c;
+    }
+
+    public static Conversation create(Long userA, List<Long> users) {
+
+        Conversation c = new Conversation();
+        List<Long> allUser = users;
+        allUser.add(userA);
+        Collections.sort(allUser, new Comparator<Long>() {
+            public int compare(Long arg0, Long arg1) {
+                return arg0 - arg1 > 0 ? 1 : -1;
+            }
+        });
+
+        c.id = new ObjectId();
+        c.participants = allUser;
+        c.fingerprint = String.format("%d.%d", allUser);
         c.msgCounter = 0L;
         c.createTime = c.updateTime = System.currentTimeMillis();
         return c;
