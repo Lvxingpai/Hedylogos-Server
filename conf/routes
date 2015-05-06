@@ -11,10 +11,17 @@ POST        /users/logout                  controllers.UserCtrl.logout
 
 POST        /upload/token-generator        controllers.MiscCtrl.uploadToken
 
+POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
+
 POST        /chats                         controllers.ChatCtrl.sendMessage
 
-POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
+POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user:Long)
 
 GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 
-POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user:Long)
+#群组
+POST        /groups                        controllers.GroupCtrl.createGroup()
+PUT         /groups/:gId                   controllers.GroupCtrl.modifyGroup(gId:Long)
+GET         /groups/:gId                   controllers.GroupCtrl.getGroup(gId:Long)
+GET         /groups/:gId/users             controllers.GroupCtrl.getGroupUsers(gId:Long)
+POST        /groups/:gId                   controllers.GroupCtrl.opGroup(gId:Long)
