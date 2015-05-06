@@ -7,7 +7,6 @@ import models._
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
-import scala.collection.JavaConversions
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 
@@ -44,29 +43,6 @@ object Chat {
     Future {
       val c: Conversation = Conversation.create(userA, userB)
 
-      try {
-        ds.save[Conversation](c)
-        Some(c)
-      } catch {
-        case e: DuplicateKeyException =>
-          val result = ds.find(classOf[Conversation], Conversation.FD_FINGERPRINT, c.getFingerprint).get
-          if (result != null) Some(result) else None
-      }
-    }
-  }
-
-  /**
-   * 获得一个群聊的Conversation
-   *
-   * @param create  如果该conversation不存在，是否新建？
-   * @return
-   */
-  def groupConversation(userA: Long, groupId: Long, create: Boolean = true): Future[Option[Conversation]] = {
-    for {
-      group <- Group.getGroup(groupId)
-      users <- Group.getUserInfo(group.getParticipants map scala.Long.unbox)
-    } yield {
-      val c = Conversation.create(userA, users.map(_.getUserId))
       try {
         ds.save[Conversation](c)
         Some(c)
