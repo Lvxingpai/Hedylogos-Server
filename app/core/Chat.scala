@@ -1,5 +1,7 @@
 package core
 
+import java.util.Arrays
+
 import com.mongodb.DuplicateKeyException
 import core.connector.{HedyRedis, MorphiaFactory}
 import core.mio.{GetuiService, MongoStorage, RedisMessaging}
@@ -51,6 +53,44 @@ object Chat {
           val result = ds.find(classOf[Conversation], Conversation.FD_FINGERPRINT, c.getFingerprint).get
           if (result != null) Some(result) else None
       }
+    }
+  }
+
+  /**
+   * 创建群组的会话
+   *
+   * @param group
+   * @param create
+   * @return
+   */
+  def groupConversation(group: models.Group, create: Boolean = true): Future[Conversation] = {
+    Future {
+      val c: Conversation = new Conversation
+      c.setId(group.getId)
+      c.setFingerprint(group.getGroupId.toString)
+      c.setParticipants(group.getParticipants)
+      c.setMsgCounter(0L)
+      c.setCreateTime(System.currentTimeMillis())
+      c.setUpdateTime(System.currentTimeMillis())
+      try {
+        ds.save[Conversation](c)
+        c
+      } catch {
+        case e: DuplicateKeyException =>
+          val result = ds.find(classOf[Conversation], Conversation.FD_FINGERPRINT, c.getFingerprint).get
+          result
+      }
+    }
+  }
+
+  def opGroupConversation(group: models.Group, participants: Seq[Long], isAdd: Boolean = true): Future[Unit] = {
+    Future {
+      val ops = ds.createUpdateOperations(classOf[Conversation])
+      if (isAdd)
+        ops.addAll(models.Conversation.FD_PARTICIPANTS, participants, false)
+      else
+        ops.removeAll(models.Conversation.FD_PARTICIPANTS, participants)
+      ds.updateFirst(ds.createQuery(classOf[Conversation]).field("id").equal(group.getId), ops)
     }
   }
 

@@ -44,6 +44,9 @@ public class Group extends AbstractEntity {
     @Transient
     public static String FD_PARTICIPANTS = "participants";
 
+    @Transient
+    public static String FD_PARTICIPANTCNT = "participantCnt";
+
     @Indexed(unique = true)
     private Long groupId;
 
@@ -62,6 +65,7 @@ public class Group extends AbstractEntity {
     private List<Long> admin;
 
     private List<Long> participants;
+
     private Integer participantCnt;
 
     private Long msgCounter;
@@ -209,7 +213,10 @@ public class Group extends AbstractEntity {
     }
 
     public Integer getParticipantCnt() {
-        return participantCnt;
+        if (participants == null)
+            return 0;
+        else
+            return participants.size();
     }
 
     public void setParticipantCnt(Integer participantCnt) {

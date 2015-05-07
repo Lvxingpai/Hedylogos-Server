@@ -1,7 +1,7 @@
 package controllers
 
 
-import core.Group
+import core.{Chat, Group}
 import core.json.{UserInfoSimpleFormatter, MessageFormatter}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
@@ -32,13 +32,15 @@ object GroupCtrl extends Controller {
 
       for {
         group <- Group.createGroup(uid, name, groupType, isPublic)
+        conversation <- Chat.groupConversation(group)
       } yield {
         val result = JsObject(Seq(
           "groupId" -> JsNumber(group.getGroupId.toLong),
           "name" -> JsString(group.getName),
           "creator" -> JsNumber(group.getCreator.toLong),
           "groupType" -> JsString(group.getType),
-          "isPublic" -> JsBoolean(group.getVisible)
+          "isPublic" -> JsBoolean(group.getVisible),
+          "conversation" -> JsString(conversation.getId.toString)
         ))
         Helpers.JsonResponse(data = Some(result))
       }
@@ -81,6 +83,7 @@ object GroupCtrl extends Controller {
       } yield {
 
         val result = JsObject(Seq(
+          "id" -> JsString(group.getId.toString),
           "groupId" -> JsNumber(group.getGroupId.toLong),
           "name" -> JsString(group.getName),
           "creator" -> JsNumber(group.getCreator.toLong),
@@ -120,13 +123,7 @@ object GroupCtrl extends Controller {
         group <- Group.getGroup(gid)
         participant <- Group.getUserInfo(group.getParticipants map scala.Long.unbox)
       } yield {
-
-        val result = JsObject(Seq(
-          "groupId" -> JsNumber(group.getGroupId.toLong),
-          "participants" -> JsArray(participant.map(UserInfoSimpleFormatter.format))
-        )
-        )
-
+        val result = JsArray(participant.map(UserInfoSimpleFormatter.format))
         Helpers.JsonResponse(data = Some(result))
       }
     }

@@ -36,10 +36,12 @@ object Group {
       gid <- futureGid
     } yield {
       val c = models.Group.create(creator, scala.Long.box(gid), name, groupType, isPublic)
+      c.getId
       groupDs.save[Group](c)
       c
     }
   }
+
 
   /**
    * 取得群组ID
@@ -123,10 +125,14 @@ object Group {
       val ops: UpdateOperations[Group] = miscDs.createUpdateOperations(classOf[Group])
       action match {
         case GroupCtrl.ACTION_ADDMEMBERS => ops.addAll(models.Group.FD_PARTICIPANTS, members, false)
+
         case GroupCtrl.ACTION_DELMEMBERS => ops.removeAll(models.Group.FD_PARTICIPANTS, members)
-        //case _ => return null
       }
       groupDs.updateFirst(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
+      for {
+        group <- getGroup(gId)
+        chat <- Chat.opGroupConversation(group, members, action.equals(GroupCtrl.ACTION_ADDMEMBERS))
+      } chat
     }
   }
 

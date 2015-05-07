@@ -1,10 +1,7 @@
 package models;
 
 import org.bson.types.ObjectId;
-import org.mongodb.morphia.annotations.Entity;
-import org.mongodb.morphia.annotations.Id;
-import org.mongodb.morphia.annotations.Indexed;
-import org.mongodb.morphia.annotations.Version;
+import org.mongodb.morphia.annotations.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,6 +14,8 @@ import java.util.Objects;
 public class Conversation extends AbstractEntity {
 //    @Version
 //    private Long v;
+    @Transient
+    public static String FD_PARTICIPANTS = "participants";
 
     @Indexed(unique = true)
     private String fingerprint;
