@@ -26,12 +26,14 @@ object GroupCtrl extends Controller {
     request => {
       val uid = request.headers.get("UserId").get.toLong
       val jsonNode = request.body.asJson.get
+      //
       val name = (jsonNode \ "name").asOpt[String].get
-      val groupType = (jsonNode \ "groupType").asOpt[String].get
-      val isPublic = (jsonNode \ "isPublic").asOpt[Boolean].get
+      val avatar = (jsonNode \ "avatar").asOpt[String].getOrElse("")
+      val groupType = (jsonNode \ "groupType").asOpt[String].getOrElse(models.Group.FD_TYPE_COMMON)
+      val isPublic = (jsonNode \ "isPublic").asOpt[Boolean].getOrElse(true)
       val participants = (jsonNode \ "participants").asOpt[Array[Long]]
       for {
-        group <- Group.createGroup(uid, name, groupType, isPublic, if (participants.nonEmpty) participants.get else null)
+        group <- Group.createGroup(uid, name, avatar, groupType, isPublic, if (participants.nonEmpty) participants.get else null)
         conversation <- Chat.groupConversation(group)
       } yield {
         val result = JsObject(Seq(
@@ -111,16 +113,15 @@ object GroupCtrl extends Controller {
   }
 
   /**
-   * 取得群组中的成员信息
    *
    * @param gid
    * @return
    */
-  def getGroupUsers(gid: Long) = Action.async {
+  def getUserGroups(gid: Long) = Action.async {
     request => {
       val uid = request.headers.get("UserId").get.toLong
       for {
-        group <- Group.getGroup(gid,Seq(models.Group.FD_PARTICIPANTS))
+        group <- Group.getGroup(gid, Seq(models.Group.FD_PARTICIPANTS))
         participant <- Group.getUserInfo(group.getParticipants map scala.Long.unbox, UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS)
       } yield {
         val result = JsArray(participant.map(UserInfoSimpleFormatter.format))

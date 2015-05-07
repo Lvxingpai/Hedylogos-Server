@@ -29,7 +29,7 @@ object Group {
    * @param isPublic
    * @return
    */
-  def createGroup(creator: Long, name: String, groupType: String, isPublic: Boolean, member: Seq[Long]): Future[Group] = {
+  def createGroup(creator: Long, name: String,avatar: String, groupType: String, isPublic: Boolean, member: Seq[Long]): Future[Group] = {
 
     val futureGid = populateGroupId
     val allMembers = if (member != null) member :+ creator else Seq(creator)

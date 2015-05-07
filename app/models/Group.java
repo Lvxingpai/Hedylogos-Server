@@ -28,6 +28,9 @@ public class Group extends AbstractEntity {
     public static String FD_TYPE = "type";
 
     @Transient
+    public static String FD_TYPE_COMMON = "common";
+
+    @Transient
     public static String FD_AVATAR = "avatar";
 
     @Transient
