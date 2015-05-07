@@ -77,7 +77,7 @@ object Group {
           (avatar, models.Group.FD_AVATAR),
           (maxUser, models.Group.FD_MAXUSERS),
           (isPublic, models.Group.FD_VISIBLE))
-      } if (field.nonEmpty) ops.set(fieldStr, field.getOrElse())
+      } if (field.nonEmpty) ops.set(fieldStr, field.get)
       groupDs.updateFirst(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
     }
   }
