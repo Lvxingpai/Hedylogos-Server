@@ -28,14 +28,15 @@ object Group {
    * @param isPublic
    * @return
    */
-  def createGroup(creator: Long, name: String, groupType: String, isPublic: Boolean): Future[Group] = {
+  def createGroup(creator: Long, name: String, groupType: String, isPublic: Boolean, member: Seq[Long]): Future[Group] = {
 
     val futureGid = populateGroupId
+    val allMembers = if (member != null) member :+ creator else Seq(creator)
     // comprehension
     for {
       gid <- futureGid
     } yield {
-      val c = models.Group.create(creator, scala.Long.box(gid), name, groupType, isPublic)
+      val c = models.Group.create(creator, scala.Long.box(gid), name, groupType, isPublic, allMembers map scala.Long.box)
       c.getId
       groupDs.save[Group](c)
       c
@@ -79,7 +80,7 @@ object Group {
           (avatar, models.Group.FD_AVATAR),
           (maxUser, models.Group.FD_MAXUSERS),
           (isPublic, models.Group.FD_VISIBLE))
-      } if (field.nonEmpty) ops.set(fieldStr, field.getOrElse())
+      } if (field.nonEmpty) ops.set(fieldStr, field.get)
       groupDs.updateFirst(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
     }
   }

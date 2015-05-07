@@ -6,6 +6,7 @@ import org.mongodb.morphia.annotations.Indexed;
 import org.mongodb.morphia.annotations.Transient;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -79,7 +80,7 @@ public class Group extends AbstractEntity {
     private Boolean visible;
 
 
-    public static Group create(Long creator, Long groupId, String name, String groupType, Boolean isPublic) {
+    public static Group create(Long creator, Long groupId, String name, String groupType, Boolean isPublic, List<Long> members) {
 
         Group c = new Group();
         c.id = new ObjectId();
@@ -90,11 +91,10 @@ public class Group extends AbstractEntity {
         c.name = name;
         c.type = groupType;
         c.visible = isPublic;
-        c.participants = Arrays.asList(creator);
-        c.participantCnt = 1;
+        c.participants = members;
+        c.participantCnt = members.size();
         c.maxUsers = 50;
-        c.desc = "群主什么也不说";
-
+        c.desc = "群主什么也没说";
         c.msgCounter = 0L;
         c.createTime = c.updateTime = System.currentTimeMillis();
         return c;

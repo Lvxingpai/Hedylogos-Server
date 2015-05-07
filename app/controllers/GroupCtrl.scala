@@ -29,9 +29,9 @@ object GroupCtrl extends Controller {
       val name = (jsonNode \ "name").asOpt[String].get
       val groupType = (jsonNode \ "groupType").asOpt[String].get
       val isPublic = (jsonNode \ "isPublic").asOpt[Boolean].get
-
+      val participants = (jsonNode \ "participants").asOpt[Array[Long]]
       for {
-        group <- Group.createGroup(uid, name, groupType, isPublic)
+        group <- Group.createGroup(uid, name, groupType, isPublic, if (participants.nonEmpty) participants.get else null)
         conversation <- Chat.groupConversation(group)
       } yield {
         val result = JsObject(Seq(
