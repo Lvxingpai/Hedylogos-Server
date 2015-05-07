@@ -7,6 +7,7 @@ import org.mongodb.morphia.query.{Query, UpdateOperations}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ArrayBuffer
 
 import scala.concurrent.Future
 
@@ -91,9 +92,10 @@ object Group {
    * @param gId
    * @return
    */
-  def getGroup(gId: Long): Future[Group] = {
+  def getGroup(gId: Long, fields: Seq[String] = null): Future[Group] = {
     Future {
       val query: Query[Group] = groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId)
+      if (fields != null && !fields.isEmpty) query.retrievedFields(true, fields: _*)
       query.get
     }
   }
@@ -108,7 +110,7 @@ object Group {
   def getUserInfo(uIds: Seq[Long], fields: Seq[String] = null): Future[Seq[UserInfo]] = {
     Future {
       val queryUser: Query[UserInfo] = userDs.createQuery(classOf[UserInfo]).field(models.UserInfo.fnUserId).hasAnyOf(uIds map scala.Long.box)
-      //if (fields != null && !fields.isEmpty) queryUser.retrievedFields(true, fields map (_.toString)).toArray)
+      if (fields != null && !fields.isEmpty) queryUser.retrievedFields(true, fields: _*)
       queryUser.asList().asScala
     }
   }
@@ -131,7 +133,7 @@ object Group {
       }
       groupDs.updateFirst(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
       for {
-        group <- getGroup(gId)
+        group <- getGroup(gId, Seq(models.AbstractEntity.FD_ID))
         chat <- Chat.opGroupConversation(group, members, action.equals(GroupCtrl.ACTION_ADDMEMBERS))
       } chat
     }

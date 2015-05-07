@@ -78,8 +78,8 @@ object GroupCtrl extends Controller {
       val uid = request.headers.get("UserId").get.toLong
       for {
         group <- Group.getGroup(gid)
-        creator <- Group.getUserInfo(Seq(group.getCreator)) map (_(0))
-        admin <- Group.getUserInfo(group.getAdmin map scala.Long.unbox)
+        creator <- Group.getUserInfo(Seq(group.getCreator), UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS) map (_(0))
+        admin <- Group.getUserInfo(group.getAdmin map scala.Long.unbox, UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS)
       } yield {
 
         val result = JsObject(Seq(
@@ -120,8 +120,8 @@ object GroupCtrl extends Controller {
     request => {
       val uid = request.headers.get("UserId").get.toLong
       for {
-        group <- Group.getGroup(gid)
-        participant <- Group.getUserInfo(group.getParticipants map scala.Long.unbox)
+        group <- Group.getGroup(gid,Seq(models.Group.FD_PARTICIPANTS))
+        participant <- Group.getUserInfo(group.getParticipants map scala.Long.unbox, UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS)
       } yield {
         val result = JsArray(participant.map(UserInfoSimpleFormatter.format))
         Helpers.JsonResponse(data = Some(result))
