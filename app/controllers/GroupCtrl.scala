@@ -2,7 +2,7 @@ package controllers
 
 
 import core.{Chat, Group}
-import core.json.{UserInfoSimpleFormatter, MessageFormatter}
+import core.json.{GroupSimpleFormatter, UserInfoSimpleFormatter, MessageFormatter}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
@@ -83,7 +83,6 @@ object GroupCtrl extends Controller {
         creator <- Group.getUserInfo(Seq(group.getCreator), UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS) map (_(0))
         admin <- Group.getUserInfo(group.getAdmin map scala.Long.unbox, UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS)
       } yield {
-
         val result = JsObject(Seq(
           "id" -> JsString(group.getId.toString),
           "groupId" -> JsNumber(group.getGroupId.toLong),
@@ -106,18 +105,36 @@ object GroupCtrl extends Controller {
           "participantCnt" -> JsNumber(group.getParticipantCnt.toInt)
         )
         )
-
         Helpers.JsonResponse(data = Some(result))
       }
     }
   }
 
   /**
+   * 取得用户的群组信息
+   *
+   * @return
+   */
+  def getUserGroups(uid:Long) = Action.async {
+    request => {
+      //val uid = request.headers.get("UserId").get.toLong
+      val fields = GroupSimpleFormatter.GROUPSIMPLEFIELDS
+      for {
+        group <- Group.getUserGroups(uid, fields)
+      } yield {
+        val result = JsArray(group.map(GroupSimpleFormatter.format))
+        Helpers.JsonResponse(data = Some(result))
+      }
+    }
+  }
+
+  /**
+   * 取得群组中的成员信息
    *
    * @param gid
    * @return
    */
-  def getUserGroups(gid: Long) = Action.async {
+  def getGroupUsers(gid: Long) = Action.async {
     request => {
       val uid = request.headers.get("UserId").get.toLong
       for {

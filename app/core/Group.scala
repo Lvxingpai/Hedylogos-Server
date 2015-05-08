@@ -2,13 +2,14 @@ package core
 
 import controllers.GroupCtrl
 import core.connector.MorphiaFactory
-import models._
+import models.Group
+import models.Sequence
+import models.UserInfo
 import org.mongodb.morphia.query.{Query, UpdateOperations}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
 
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
 /**
@@ -29,7 +30,7 @@ object Group {
    * @param isPublic
    * @return
    */
-  def createGroup(creator: Long, name: String,avatar: String, groupType: String, isPublic: Boolean, member: Seq[Long]): Future[Group] = {
+  def createGroup(creator: Long, name: String, avatar: String, groupType: String, isPublic: Boolean, member: Seq[Long]): Future[Group] = {
 
     val futureGid = populateGroupId
     val allMembers = if (member != null) member :+ creator else Seq(creator)
@@ -37,7 +38,7 @@ object Group {
     for {
       gid <- futureGid
     } yield {
-      val c = models.Group.create(creator, scala.Long.box(gid), name, groupType, isPublic, allMembers map scala.Long.box)
+      val c = models.Group.create(creator, scala.Long.box(gid),  name,avatar, groupType, isPublic, allMembers map scala.Long.box)
       c.getId
       groupDs.save[Group](c)
       c
@@ -112,6 +113,20 @@ object Group {
       val queryUser: Query[UserInfo] = userDs.createQuery(classOf[UserInfo]).field(models.UserInfo.fnUserId).hasAnyOf(uIds map scala.Long.box)
       if (fields != null && !fields.isEmpty) queryUser.retrievedFields(true, fields: _*)
       queryUser.asList().asScala
+    }
+  }
+
+  /**
+   * 取得用户的群组信息
+   *
+   * @param uid
+   * @return
+   */
+  def getUserGroups(uid: Long, fields: Seq[String] = null): Future[Seq[Group]] = {
+    Future {
+      val query: Query[Group] = groupDs.createQuery(classOf[Group]).field(models.Group.FD_PARTICIPANTS).hasThisOne(uid)
+      if (fields != null && !fields.isEmpty) query.retrievedFields(true, fields: _*)
+      query.asList().asScala
     }
   }
 

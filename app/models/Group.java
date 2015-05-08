@@ -68,6 +68,7 @@ public class Group extends AbstractEntity {
 
     private List<Long> admin;
 
+
     private List<Long> participants;
 
     private Integer participantCnt;
@@ -83,7 +84,7 @@ public class Group extends AbstractEntity {
     private Boolean visible;
 
 
-    public static Group create(Long creator, Long groupId, String name, String groupType, Boolean isPublic, List<Long> members) {
+    public static Group create(Long creator, Long groupId, String name,String avatar, String groupType, Boolean isPublic, List<Long> members) {
 
         Group c = new Group();
         c.id = new ObjectId();
@@ -92,6 +93,7 @@ public class Group extends AbstractEntity {
         c.admin = Arrays.asList(creator);
 
         c.name = name;
+        c.avatar = avatar;
         c.type = groupType;
         c.visible = isPublic;
         c.participants = members;
