@@ -2,9 +2,7 @@ package core
 
 import controllers.GroupCtrl
 import core.connector.MorphiaFactory
-import models.Group
-import models.Sequence
-import models.UserInfo
+import models.{Group, Sequence, UserInfo}
 import org.mongodb.morphia.query.{Query, UpdateOperations}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
@@ -38,7 +36,7 @@ object Group {
     for {
       gid <- futureGid
     } yield {
-      val c = models.Group.create(creator, scala.Long.box(gid),  name,avatar, groupType, isPublic, allMembers map scala.Long.box)
+      val c = models.Group.create(creator, scala.Long.box(gid), name, avatar, groupType, isPublic, allMembers map scala.Long.box)
       c.getId
       groupDs.save[Group](c)
       c
@@ -133,6 +131,7 @@ object Group {
   /**
    * 操作群组，如添加删除成员
    *
+   * ops.removeAll(models.Group.FD_PARTICIPANTS, members)
    * @param gId
    * @param action
    * @param members
@@ -140,18 +139,43 @@ object Group {
    */
   def opGroup(gId: Long, action: String, members: Seq[Long]): Future[Unit] = {
     Future {
-      val ops: UpdateOperations[Group] = miscDs.createUpdateOperations(classOf[Group])
-      action match {
-        case GroupCtrl.ACTION_ADDMEMBERS => ops.addAll(models.Group.FD_PARTICIPANTS, members, false)
-
-        case GroupCtrl.ACTION_DELMEMBERS => ops.removeAll(models.Group.FD_PARTICIPANTS, members)
-      }
-      groupDs.updateFirst(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
       for {
+        v <- Future {
+          val ops: UpdateOperations[Group] = groupDs.createUpdateOperations(classOf[Group])
+          action match {
+            case GroupCtrl.ACTION_ADDMEMBERS =>
+              ops.addAll(models.Group.FD_PARTICIPANTS, members, false)
+              groupDs.update(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
+
+            case GroupCtrl.ACTION_DELMEMBERS =>
+              //ops.removeAll(models.Group.FD_PARTICIPANTS, members)
+              delMember(gId, members)
+          }
+
+        }
         group <- getGroup(gId, Seq(models.AbstractEntity.FD_ID))
         chat <- Chat.opGroupConversation(group, members, action.equals(GroupCtrl.ACTION_ADDMEMBERS))
       } chat
     }
+  }
+
+  def delMember(gId: Long, members: Seq[Long]): Future[Unit] = {
+
+    for {
+      people <- Future {
+        groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId).get().getParticipants.asScala
+      }
+      newPeople <- Future {
+        val ops: UpdateOperations[Group] = groupDs.createUpdateOperations(classOf[Group]).set(models.Group.FD_PARTICIPANTS, (people diff members).asJava)
+        groupDs.update(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
+      }
+    } yield newPeople
+
+//    Future {
+//    val people = groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId).get().getParticipants.asScala
+//    val ops: UpdateOperations[Group] = groupDs.createUpdateOperations(classOf[Group]).set(models.Group.FD_PARTICIPANTS, (people diff members).asJava)
+//    groupDs.update(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
+//    }
   }
 
 }

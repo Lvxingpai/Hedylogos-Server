@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Created by topy on 2015/4/25.
  */
-@Entity
+@Entity(noClassnameStored = true)
 public class Group extends AbstractEntity {
 
     @Transient
