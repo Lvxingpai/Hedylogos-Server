@@ -85,6 +85,7 @@ object GroupCtrl extends Controller {
       } yield {
         val result = JsObject(Seq(
           "id" -> JsString(group.getId.toString),
+          "conversation" -> JsString(group.getId.toString),
           "groupId" -> JsNumber(group.getGroupId.toLong),
           "name" -> JsString(group.getName),
           "creator" -> JsNumber(group.getCreator.toLong),

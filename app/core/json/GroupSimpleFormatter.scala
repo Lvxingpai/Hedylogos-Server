@@ -14,9 +14,11 @@ object GroupSimpleFormatter extends JsonFormatter {
     val group = item.asInstanceOf[models.Group]
     JsObject(Seq(
       "id" -> JsString(group.getId.toString),
+      "conversation" -> JsString(group.getId.toString),
       "groupId" -> JsNumber(group.getGroupId.toLong),
       "name" -> JsString(group.getName),
       "avatar" -> JsString(group.getAvatar)
+
     ))
   }
 }
