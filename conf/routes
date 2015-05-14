@@ -15,9 +15,9 @@ POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
 
 POST        /chats                         controllers.ChatCtrl.sendMessage
 
-POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user:Long)
+POST        /chats/:user/ack               controllers.ChatCtrl.acknowledgeAndFetchMessages(user:Long)
 
-GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
+#GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 
 #群组
 #创建群组
