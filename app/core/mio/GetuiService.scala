@@ -31,7 +31,7 @@ object GetuiService extends MessageDeliever {
     template.setAppId(gtAppId)
     template.setAppkey(gtAppKey)
     template.setTransmissionType(2)
-    template.setTransmissionContent(MessageFormatter.format(msg).toString())
+    template.setTransmissionContent(MessageFormatter.formatAddRouteKey(msg, "IM").toString())
 
     // * 如果为普通文本消息，则可以直接通过APNS推送正文
     // * APNS消息的最大长度为maxLen
