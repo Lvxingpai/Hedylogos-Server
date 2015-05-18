@@ -48,8 +48,7 @@ object ChatCtrl extends Controller {
     }
   }
 
-
-  def acknowledge(user: Long) = Action.async {
+  def acknowledgeAndFetchMessages(user: Long) = Action.async {
     request => {
       val jsonNode = request.body.asJson.get
       val ackMessages = (jsonNode \ "msgList").asInstanceOf[JsArray].value.map(_.asOpt[String].get)
@@ -59,15 +58,16 @@ object ChatCtrl extends Controller {
     }
   }
 
-  def fetchMessages(user: Long) = Action.async {
-    Chat.fetchMessage(user).map(msgSeq => {
-      Helpers.JsonResponse(data = Some(JsArray(msgSeq.map(MessageFormatter.format))))
-    })
-  }
-
   def _fetchMessages(user: Long): Future[JsValue] = {
     Chat.fetchMessage(user).map(msgSeq => {
       JsArray(msgSeq.map(MessageFormatter.format(_)))
     })
   }
+
+  //
+  //  def fetchMessages(user: Long) = Action.async {
+  //    Chat.fetchMessage(user).map(msgSeq => {
+  //      Helpers.JsonResponse(data = Some(JsArray(msgSeq.map(MessageFormatter.format))))
+  //    })
+  //  }
 }

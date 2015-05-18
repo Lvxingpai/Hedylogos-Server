@@ -1,8 +1,8 @@
 package controllers
 
 
-import core.Group
-import core.json.{UserInfoSimpleFormatter, MessageFormatter}
+import core.{Chat, Group}
+import core.json.{GroupSimpleFormatter, UserInfoSimpleFormatter, MessageFormatter}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
@@ -26,19 +26,23 @@ object GroupCtrl extends Controller {
     request => {
       val uid = request.headers.get("UserId").get.toLong
       val jsonNode = request.body.asJson.get
+      //
       val name = (jsonNode \ "name").asOpt[String].get
-      val groupType = (jsonNode \ "groupType").asOpt[String].get
-      val isPublic = (jsonNode \ "isPublic").asOpt[Boolean].get
-
+      val avatar = (jsonNode \ "avatar").asOpt[String].getOrElse("")
+      val groupType = (jsonNode \ "groupType").asOpt[String].getOrElse(models.Group.FD_TYPE_COMMON)
+      val isPublic = (jsonNode \ "isPublic").asOpt[Boolean].getOrElse(true)
+      val participants = (jsonNode \ "participants").asOpt[Array[Long]]
       for {
-        group <- Group.createGroup(uid, name, groupType, isPublic)
+        group <- Group.createGroup(uid, name, avatar, groupType, isPublic, if (participants.nonEmpty) participants.get else null)
+        conversation <- Chat.groupConversation(group)
       } yield {
         val result = JsObject(Seq(
           "groupId" -> JsNumber(group.getGroupId.toLong),
           "name" -> JsString(group.getName),
           "creator" -> JsNumber(group.getCreator.toLong),
           "groupType" -> JsString(group.getType),
-          "isPublic" -> JsBoolean(group.getVisible)
+          "isPublic" -> JsBoolean(group.getVisible),
+          "conversation" -> JsString(conversation.getId.toString)
         ))
         Helpers.JsonResponse(data = Some(result))
       }
@@ -76,11 +80,12 @@ object GroupCtrl extends Controller {
       val uid = request.headers.get("UserId").get.toLong
       for {
         group <- Group.getGroup(gid)
-        creator <- Group.getUserInfo(Seq(group.getCreator)) map (_(0))
-        admin <- Group.getUserInfo(group.getAdmin map scala.Long.unbox)
+        creator <- Group.getUserInfo(Seq(group.getCreator), UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS) map (_(0))
+        admin <- Group.getUserInfo(group.getAdmin map scala.Long.unbox, UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS)
       } yield {
-
         val result = JsObject(Seq(
+          "id" -> JsString(group.getId.toString),
+          "conversation" -> JsString(group.getId.toString),
           "groupId" -> JsNumber(group.getGroupId.toLong),
           "name" -> JsString(group.getName),
           "creator" -> JsNumber(group.getCreator.toLong),
@@ -101,7 +106,24 @@ object GroupCtrl extends Controller {
           "participantCnt" -> JsNumber(group.getParticipantCnt.toInt)
         )
         )
+        Helpers.JsonResponse(data = Some(result))
+      }
+    }
+  }
 
+  /**
+   * 取得用户的群组信息
+   *
+   * @return
+   */
+  def getUserGroups(uid:Long) = Action.async {
+    request => {
+      //val uid = request.headers.get("UserId").get.toLong
+      val fields = GroupSimpleFormatter.GROUPSIMPLEFIELDS
+      for {
+        group <- Group.getUserGroups(uid, fields)
+      } yield {
+        val result = JsArray(group.map(GroupSimpleFormatter.format))
         Helpers.JsonResponse(data = Some(result))
       }
     }
@@ -117,16 +139,10 @@ object GroupCtrl extends Controller {
     request => {
       val uid = request.headers.get("UserId").get.toLong
       for {
-        group <- Group.getGroup(gid)
-        participant <- Group.getUserInfo(group.getParticipants map scala.Long.unbox)
+        group <- Group.getGroup(gid, Seq(models.Group.FD_PARTICIPANTS))
+        participant <- Group.getUserInfo(group.getParticipants map scala.Long.unbox, UserInfoSimpleFormatter.USERINFOSIMPLEFIELDS)
       } yield {
-
-        val result = JsObject(Seq(
-          "groupId" -> JsNumber(group.getGroupId.toLong),
-          "participants" -> JsArray(participant.map(UserInfoSimpleFormatter.format))
-        )
-        )
-
+        val result = JsArray(participant.map(UserInfoSimpleFormatter.format))
         Helpers.JsonResponse(data = Some(result))
       }
     }

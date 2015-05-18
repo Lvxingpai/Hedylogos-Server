@@ -7,6 +7,9 @@ import play.api.libs.json.{JsNumber, JsObject, JsString, JsValue}
  * Created by zephyre on 4/23/15.
  */
 object UserInfoSimpleFormatter extends JsonFormatter {
+
+  val USERINFOSIMPLEFIELDS = Seq("userId", "nickName", "avatar")
+
   override def format(item: AbstractEntity): JsValue = {
     val user = item.asInstanceOf[models.UserInfo]
     JsObject(Seq(
