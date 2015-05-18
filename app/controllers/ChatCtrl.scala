@@ -1,12 +1,13 @@
 package controllers
 
-import core.Chat
+import core.{Group, Chat}
 import core.json.MessageFormatter
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller, Result}
 
+import scala.collection.generic.SeqFactory
 import scala.concurrent.Future
 
 /**
@@ -14,16 +15,27 @@ import scala.concurrent.Future
  */
 object ChatCtrl extends Controller {
 
-  case class MessageInfo(senderId: Long, receiverId: Option[Long], cid: Option[ObjectId], msgType: Int,
+  case class MessageInfo(senderId: Long, chatType: String, receiverId: Option[Long], cid: Option[ObjectId], msgType: Int,
                          contents: Option[String])
+
+  val SEND_TYPE_SINGLE = "single"
+  val SEND_TYPE_GROUP = "group"
 
   def sendMessageBase(msgInfo: MessageInfo): Future[Result] = {
     val cid = msgInfo.cid
+    val chatType = msgInfo.chatType
 
-    val futureMsg = if (cid.nonEmpty)
-      Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.senderId)
-    else
-      Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId)
+    val futureMsg =
+      if (cid.nonEmpty)
+        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.senderId)
+      else if (chatType.equals(SEND_TYPE_SINGLE))
+        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId)
+      else if (chatType.equals(SEND_TYPE_GROUP))
+        for {
+          group <- Group.getGroup(msgInfo.receiverId.get, Seq(models.AbstractEntity.FD_ID))
+          chat <- Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), group.getId, msgInfo.senderId)
+        } yield chat
+      else null
 
     futureMsg.map(msg => {
       val result = JsObject(Seq(
@@ -39,12 +51,13 @@ object ChatCtrl extends Controller {
     request => {
       val jsonNode = request.body.asJson.get
       val senderId = (jsonNode \ "sender").asOpt[Long].get
-      val recvId = (jsonNode \ "receiver").asOpt[Long]
+      val chatType = (jsonNode \ "chatType").asOpt[String].get
+      val receiverId = (jsonNode \ "receiver").asOpt[Long]
       val cid = (jsonNode \ "conversation").asOpt[String].map(v => new ObjectId(v))
       val msgType = (jsonNode \ "msgType").asOpt[Int].get
       val contents = (jsonNode \ "contents").asOpt[String]
 
-      sendMessageBase(MessageInfo(senderId, recvId, cid, msgType, contents))
+      sendMessageBase(MessageInfo(senderId, chatType, receiverId, cid, msgType, contents))
     }
   }
 
