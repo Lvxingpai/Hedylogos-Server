@@ -126,7 +126,7 @@ object Chat {
     }
   }
 
-  def buildMessage(msgType: Int, contents: String, cid: ObjectId, sender: Long): Future[Message] = {
+  def buildMessage(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] = {
     val msg = new Message()
     msg.setId(new ObjectId())
     msg.setContents(contents)
@@ -134,6 +134,8 @@ object Chat {
     msg.setTimestamp(System.currentTimeMillis)
     msg.setConversation(cid)
     msg.setSenderId(sender)
+    msg.setReceiverId(receiver)
+    msg.setChatType(chatType)
 
     val futureMsgId = generateMsgId(cid)
     futureMsgId.map(v => {
@@ -143,8 +145,8 @@ object Chat {
   }
 
 
-  def sendMessage(msgType: Int, contents: String, cid: ObjectId, sender: Long): Future[Message] = {
-    val futureMsg = buildMessage(msgType, contents, cid, sender)
+  def sendMessage(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] = {
+    val futureMsg = buildMessage(msgType, contents, cid, receiver, sender, chatType)
     val futureConv = conversation(cid)
     val futureTargets = futureConv.map(v => {
       Set(v.get.getParticipants.filter(_ != sender).map(scala.Long.unbox(_)): _*).toSeq
@@ -166,10 +168,10 @@ object Chat {
     mongoResult
   }
 
-  def sendMessage(msgType: Int, contents: String, receiver: Long, sender: Long): Future[Message] = {
+  def sendMessage(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String): Future[Message] = {
     for {
       c <- Chat.singleConversation(sender, receiver)
-      msg <- sendMessage(msgType, contents, c.get.getId, sender)
+      msg <- sendMessage(msgType, contents, c.get.getId, receiver, sender, chatType)
     } yield msg
   }
 

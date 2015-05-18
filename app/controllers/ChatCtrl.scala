@@ -27,13 +27,13 @@ object ChatCtrl extends Controller {
 
     val futureMsg =
       if (cid.nonEmpty)
-        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.senderId)
+        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
       else if (chatType.equals(SEND_TYPE_SINGLE))
-        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId)
+        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
       else if (chatType.equals(SEND_TYPE_GROUP))
         for {
           group <- Group.getGroup(msgInfo.receiverId.get, Seq(models.AbstractEntity.FD_ID))
-          chat <- Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), group.getId, msgInfo.senderId)
+          chat <- Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), group.getId, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
         } yield chat
       else null
 

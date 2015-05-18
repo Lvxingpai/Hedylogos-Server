@@ -58,7 +58,7 @@ class ChatSpec extends Specification with SyncInvoke {
 
       val msg = syncInvoke[Message](for {
         c <- conv
-        m <- Chat.buildMessage(1, "Test", c.getId, sender)
+        m <- Chat.buildMessage(1, "Test", c.getId, receiver, sender, "single")
       } yield m)
 
       val c = msg.getConversation
