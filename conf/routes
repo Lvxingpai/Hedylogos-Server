@@ -15,13 +15,20 @@ POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
 
 POST        /chats                         controllers.ChatCtrl.sendMessage
 
-POST        /chats/:user/ack               controllers.ChatCtrl.acknowledge(user:Long)
+POST        /chats/:user/ack               controllers.ChatCtrl.acknowledgeAndFetchMessages(user:Long)
 
-GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
+#GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 
 #群组
+#创建群组
 POST        /groups                        controllers.GroupCtrl.createGroup()
+#修改群组信息
 PUT         /groups/:gId                   controllers.GroupCtrl.modifyGroup(gId:Long)
+#取得群组信息
 GET         /groups/:gId                   controllers.GroupCtrl.getGroup(gId:Long)
+#取得群组成员信息
 GET         /groups/:gId/users             controllers.GroupCtrl.getGroupUsers(gId:Long)
+#操作群组，加减成员
 POST        /groups/:gId                   controllers.GroupCtrl.opGroup(gId:Long)
+#取得用户的群组
+GET         /users/:uid/groups             controllers.GroupCtrl.getUserGroups(uid:Long)
