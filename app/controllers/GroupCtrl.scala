@@ -27,7 +27,7 @@ object GroupCtrl extends Controller {
       val uid = request.headers.get("UserId").get.toLong
       val jsonNode = request.body.asJson.get
       //
-      val name = (jsonNode \ "name").asOpt[String].get
+      val name = (jsonNode \ "name").asOpt[String].getOrElse("")
       val avatar = (jsonNode \ "avatar").asOpt[String].getOrElse("")
       val groupType = (jsonNode \ "groupType").asOpt[String].getOrElse(models.Group.FD_TYPE_COMMON)
       val isPublic = (jsonNode \ "isPublic").asOpt[Boolean].getOrElse(true)
@@ -116,7 +116,7 @@ object GroupCtrl extends Controller {
    *
    * @return
    */
-  def getUserGroups(uid:Long) = Action.async {
+  def getUserGroups(uid: Long) = Action.async {
     request => {
       //val uid = request.headers.get("UserId").get.toLong
       val fields = GroupSimpleFormatter.GROUPSIMPLEFIELDS

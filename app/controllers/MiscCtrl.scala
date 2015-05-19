@@ -17,8 +17,9 @@ object MiscCtrl extends Controller {
     request => {
       val jsonBody = request.body.asJson.get
       val key = java.util.UUID.randomUUID.toString
-      val token = (jsonBody \ "action").asOpt[Int].get match {
-        case 1 => sendMessageToken(key = key)
+      val action = (jsonBody \ "action").asOpt[Int].get
+      val token = action match {
+        case 1 | 2 => sendMessageToken(key = key, action = action)
         case _ => throw new IllegalArgumentException
       }
 
@@ -33,7 +34,7 @@ object MiscCtrl extends Controller {
    *
    * @return
    */
-  private def sendMessageToken(bucket: String = "imres", key: String)(implicit playConf: Configuration): String = {
+  private def sendMessageToken(bucket: String = "imres", key: String, action: Int)(implicit playConf: Configuration): String = {
     // 生成Map(location->x:location, price->x:price)之类的用户自定义变量
     // 参见：http://developer.qiniu.com/docs/v6/api/overview/up/response/vars.html#xvar
 
@@ -48,7 +49,7 @@ object MiscCtrl extends Controller {
 
     // 自定义变量
     val customParams = for {
-      key <- Seq("sender", "receiver", "conversation", "msgType", "action")
+      key <- Seq("sender", "chatType", "receiver", "conversation", "msgType", "action")
     } yield key -> "$(x:%s)".format(key)
 
     // 魔法变量
@@ -56,7 +57,7 @@ object MiscCtrl extends Controller {
       key <- Seq("bucket", "etag", "key", "fname", "fsize", "mimeType", "imageInfo", "avinfo", "imageAve")
     } yield key -> "$(%s)".format(key)
 
-    val params = urlencode(Map(customParams ++ magicParams :+ "action" -> "1": _*))
+    val params = urlencode(Map(customParams ++ magicParams :+ "action" -> action.toString: _*))
 
     val host = playConf.getString("server.host").get
     val scheme = playConf.getString("server.scheme").get
@@ -77,7 +78,7 @@ object MiscCtrl extends Controller {
   }
 
   /**
-   * 处理七牛的回调。如果action为1，说明这是发送消息时的上传
+   * 处理七牛的回调。1-个人；2-群组
    * @return
    */
   def qiniuCallback() = Action.async {
@@ -88,7 +89,7 @@ object MiscCtrl extends Controller {
         item._2.nonEmpty && item._2.head.nonEmpty): _*).mapValues(_.head)
 
       postMap("action") match {
-        case "1" => qiniuSendMessageCallback(postMap)
+        case "1" | "2" => qiniuSendMessageCallback(postMap)
         case _ => throw new IllegalArgumentException
       }
     }
@@ -102,6 +103,7 @@ object MiscCtrl extends Controller {
   def qiniuSendMessageCallback(postMap: Map[String, String]) = {
     val msgType = postMap.get("msgType").get.toInt
     val senderId = postMap.get("sender").get.toLong
+    val chatType = postMap.get("chatType").get.toString
     val recvId = postMap.get("receiver").map(_.toLong)
     val cid = postMap.get("conversation").map(v => new ObjectId(v))
     val bucket = postMap.get("bucket").get
@@ -137,6 +139,6 @@ object MiscCtrl extends Controller {
         ) ++ styleSet.toSeq).toString()
       case _ => throw new IllegalArgumentException
     }
-    ChatCtrl.sendMessageBase(MessageInfo(senderId, recvId, cid, msgType, Some(contents)))
+    ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId, cid, msgType, Some(contents)))
   }
 }

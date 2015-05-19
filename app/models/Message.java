@@ -8,14 +8,18 @@ import org.mongodb.morphia.annotations.Id;
  * Created by zephyre on 4/22/15.
  */
 @Entity
-public class Message extends AbstractEntity{
+public class Message extends AbstractEntity {
     private ObjectId conversation;
 
     private Long msgId;
 
     private Long senderId;
 
+    private Long receiverId;
+
     private String senderName;
+
+    private String chatType;
 
     private String senderAvatar;
 
@@ -87,5 +91,21 @@ public class Message extends AbstractEntity{
 
     public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getChatType() {
+        return chatType;
+    }
+
+    public void setChatType(String chatType) {
+        this.chatType = chatType;
+    }
+
+    public Long getReceiverId() {
+        return receiverId;
+    }
+
+    public void setReceiverId(Long receiverId) {
+        this.receiverId = receiverId;
     }
 }
