@@ -17,9 +17,9 @@ object MessageFormatter extends JsonFormatter {
       "conversation" -> JsString(msg.getConversation.toString),
       "contents" -> JsString(msg.getContents),
       "senderId" -> JsNumber(msg.getSenderId.toLong),
-      "receiverId" -> JsNumber(msg.getReceiverId.toLong),
-      "senderAvatar" -> JsString(""),
-      "senderName" -> JsString("测试用户"),
+      "groupId" -> JsNumber(msg.getReceiverId.toLong),
+      //      "senderAvatar" -> JsString(""),
+      //      "senderName" -> JsString("测试用户"),
       "timestamp" -> JsNumber(msg.getTimestamp.toLong)))
   }
 
@@ -36,9 +36,9 @@ object MessageFormatter extends JsonFormatter {
           "conversation" -> JsString(msg.getConversation.toString),
           "contents" -> JsString(msg.getContents),
           "senderId" -> JsNumber(msg.getSenderId.toLong),
-          "receiverId" -> JsNumber(msg.getReceiverId.toLong),
-          "senderAvatar" -> JsString(""),
-          "senderName" -> JsString("测试用户"),
+          "groupId" -> JsNumber(msg.getReceiverId.toLong),
+          //          "senderAvatar" -> JsString(""),
+          //          "senderName" -> JsString("测试用户"),
           "timestamp" -> JsNumber(msg.getTimestamp.toLong)
         )
       )
