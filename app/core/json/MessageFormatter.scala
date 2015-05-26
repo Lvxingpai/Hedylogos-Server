@@ -21,7 +21,7 @@ MessageFormatter extends JsonFormatter {
       //      "senderAvatar" -> JsString(""),
       //      "senderName" -> JsString("测试用户"),
       "timestamp" -> JsNumber(msg.getTimestamp.toLong))
-    val content = if (msg.getChatType.nonEmpty && msg.getChatType.equals("group"))
+    val content = if (msg.getChatType != null && msg.getChatType.equals("group"))
       stContent ++ Seq("groupId" -> JsNumber(msg.getReceiverId.toLong))
     else stContent
     JsObject(
@@ -43,7 +43,7 @@ MessageFormatter extends JsonFormatter {
       //          "senderName" -> JsString("测试用户"),
       "timestamp" -> JsNumber(msg.getTimestamp.toLong)
     )
-    val msgContent = if (msg.getChatType.nonEmpty && msg.getChatType.equals("group"))
+    val msgContent = if (msg.getChatType != null && msg.getChatType.equals("group"))
       msgStContent ++ Seq("groupId" -> JsNumber(msg.getReceiverId.toLong))
     else msgStContent
     val content = Seq(
