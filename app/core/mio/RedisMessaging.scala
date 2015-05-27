@@ -26,6 +26,23 @@ object RedisMessaging extends MessageDeliever {
     Future.fold(tasks)(Seq())((result, _) => result).map(_ => message)
   }
 
+  def sendMessageList(message: Seq[Message], targets: Seq[Long]): Future[Seq[Message]] = {
+
+    //    def msgAndTet2Map(message: Seq[Message], targets: Seq[Long]):Map[Long,Message] ={
+    //
+    //    }
+    // TODO
+    // 发送给多个用户
+    def send2Mul(userId: Long): Unit =
+      HedyRedis.clients.withClient(_.sadd(userId2key(userId), message(0).getId.toString))
+
+    val tasks = targets.map(uid => Future {
+      send2Mul(uid)
+    })
+
+    Future.fold(tasks)(Seq())((result, _) => result).map(_ => message)
+  }
+
   def fetchMessages(userId: Long): Future[Seq[Message]] = {
     val key = userId2key(userId)
     val msgKeys = HedyRedis.clients.withClient(_.smembers[String](key).get.filter(_.nonEmpty).map(_.get))

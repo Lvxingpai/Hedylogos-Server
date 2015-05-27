@@ -4,11 +4,13 @@ import controllers.GroupCtrl
 import core.connector.MorphiaFactory
 import models.{Group, Sequence, UserInfo}
 import org.mongodb.morphia.query.{Query, UpdateOperations}
+
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
+
 
 /**
  * Created by zephyre on 4/20/15.
@@ -137,7 +139,7 @@ object Group {
    * @param members
    * @return
    */
-  def opGroup(gId: Long, action: String, members: Seq[Long]): Future[Unit] = {
+  def opGroup(gId: Long, action: String, members: Seq[Long], sender: Long): Future[Unit] = {
     Future {
       for {
         v <- Future {
@@ -153,7 +155,13 @@ object Group {
           }
 
         }
+
         group <- getGroup(gId, Seq(models.AbstractEntity.FD_ID))
+        sendUser <- getUserInfo(Seq(sender), Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
+        receiverUser <- getUserInfo(members, Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
+        //msg <- Cmd.sendGroupCmdMessage(action, group, sendUser(0), receiverUser)
+        // CmdInfo.createCmd(action, 100, group, sendUser(0)).toString()
+        msg <- Chat.sendMessage(100, "", receiverUser(0).getUserId, sendUser(0).getUserId, "CMD")
         chat <- Chat.opGroupConversation(group, members, action.equals(GroupCtrl.ACTION_ADDMEMBERS))
       } chat
     }
@@ -171,11 +179,12 @@ object Group {
       }
     } yield newPeople
 
-//    Future {
-//    val people = groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId).get().getParticipants.asScala
-//    val ops: UpdateOperations[Group] = groupDs.createUpdateOperations(classOf[Group]).set(models.Group.FD_PARTICIPANTS, (people diff members).asJava)
-//    groupDs.update(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
-//    }
+    //    Future {
+    //    val people = groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId).get().getParticipants.asScala
+    //    val ops: UpdateOperations[Group] = groupDs.createUpdateOperations(classOf[Group]).set(models.Group.FD_PARTICIPANTS, (people diff members).asJava)
+    //    groupDs.update(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
+    //    }
   }
+
 
 }

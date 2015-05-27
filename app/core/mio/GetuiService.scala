@@ -39,6 +39,10 @@ object GetuiService extends MessageDeliever {
       val contents = msg.getContents
       val maxLen = 16
       if (contents.length > maxLen) contents.take(maxLen) + "..." else contents
+    } else if (msg.getMsgId == 100) {
+      val contents = msg.getContents
+      val maxLen = 16
+      if (contents.length > maxLen) contents.take(maxLen) + "..." else contents
     } else "你收到了一条新消息"
     template.setPushInfo("", 1, pushText, "default", "", "", "", "")
 

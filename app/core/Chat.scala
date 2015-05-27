@@ -144,6 +144,35 @@ object Chat {
     })
   }
 
+  def buildMessage(msgType: Int, contents: String, cidList: Seq[ObjectId], receiver: Long, sender: Long, chatType: String): Future[Seq[Message]] = {
+    def cidList2Message(cids: Seq[ObjectId]): Seq[Message] = {
+      for {
+        cid <- cids
+      } yield {
+        val msg = new Message()
+        msg.setId(new ObjectId())
+        msg.setContents(contents)
+        msg.setMsgType(msgType)
+        msg.setTimestamp(System.currentTimeMillis)
+        msg.setConversation(cid)
+        msg.setSenderId(sender)
+        msg.setReceiverId(receiver)
+        msg.setChatType(chatType)
+
+        val futureMsgId = generateMsgId(cid)
+        futureMsgId.map(v => {
+          msg.setMsgId(v.get)
+          msg
+        })
+        msg
+      }
+    }
+    val result = Future {
+      cidList2Message(cidList)
+    }
+    result
+  }
+
 
   def sendMessage(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] = {
     val futureMsg = buildMessage(msgType, contents, cid, receiver, sender, chatType)

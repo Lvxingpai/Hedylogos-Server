@@ -2,6 +2,7 @@ package controllers
 
 import controllers.ChatCtrl.MessageInfo
 import core.GlobalConfig.playConf
+import core.Group
 import core.qiniu.QiniuClient
 import org.bson.types.ObjectId
 import play.api.Configuration
@@ -141,4 +142,5 @@ object MiscCtrl extends Controller {
     }
     ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId, cid, msgType, Some(contents)))
   }
+
 }

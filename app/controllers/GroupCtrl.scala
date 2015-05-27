@@ -1,6 +1,7 @@
 package controllers
 
 
+import controllers.ChatCtrl.MessageInfo
 import core.{Chat, Group}
 import core.json.{GroupSimpleFormatter, UserInfoSimpleFormatter, MessageFormatter}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -160,7 +161,7 @@ object GroupCtrl extends Controller {
       val jsonNode = request.body.asJson.get
       val action = (jsonNode \ "action").asOpt[String].get
       val participants = (jsonNode \ "participants").asOpt[Array[Long]].get
-      Group.opGroup(gid, action, participants).map(v => Helpers.JsonResponse())
+      Group.opGroup(gid, action, participants,uid).map(v => Helpers.JsonResponse())
     }
   }
 
