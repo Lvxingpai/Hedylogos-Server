@@ -35,12 +35,17 @@ object GroupCtrl extends Controller {
       val isPublic = (jsonNode \ "isPublic").asOpt[Boolean].getOrElse(true)
       val participants = (jsonNode \ "participants").asOpt[Array[Long]]
       val participantsValue = if (participants.nonEmpty) participants.get else null
+      if (participantsValue != null) {
+        for {
+          group <- Group.createGroup(uid, name, avatar, groupType, isPublic, participantsValue)
+          // TODO
+          sendUser <- Group.getUserInfo(Seq(uid), Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
+          receiverUser <- Group.getUserInfo(participantsValue, Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
+          msg <- Chat.sendMessage(100, "", receiverUser(0).getUserId, sendUser(0).getUserId, "CMD")
+        } yield msg
+      }
       for {
         group <- Group.createGroup(uid, name, avatar, groupType, isPublic, participantsValue)
-        // TODO
-        sendUser <- Group.getUserInfo(Seq(uid), Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
-        receiverUser <- Group.getUserInfo(participantsValue, Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
-        msg <- Chat.sendMessage(100, "", receiverUser(0).getUserId, sendUser(0).getUserId, "CMD")
         conversation <- Chat.groupConversation(group)
       } yield {
         val result = JsObject(Seq(
