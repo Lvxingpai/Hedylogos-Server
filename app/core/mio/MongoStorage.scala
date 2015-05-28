@@ -26,12 +26,6 @@ object MongoStorage extends MessageDeliever {
     } map (_ => messages)
   }
 
-  def sendMessage(messages: Seq[Message],target: Seq[Long]): Future[Seq[Message]] = {
-    Future {
-      MorphiaFactory.getDatastore().save[Message](messages)
-    } map (_ => messages)
-  }
-
   def fetchMessages(idList: Seq[ObjectId]): Future[Seq[Message]] = {
     Future {
       if (idList isEmpty)

@@ -4,6 +4,7 @@ package controllers
 import controllers.ChatCtrl.MessageInfo
 import core.{Chat, Group}
 import core.json.{GroupSimpleFormatter, UserInfoSimpleFormatter, MessageFormatter}
+import models.UserInfo
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
@@ -33,8 +34,13 @@ object GroupCtrl extends Controller {
       val groupType = (jsonNode \ "groupType").asOpt[String].getOrElse(models.Group.FD_TYPE_COMMON)
       val isPublic = (jsonNode \ "isPublic").asOpt[Boolean].getOrElse(true)
       val participants = (jsonNode \ "participants").asOpt[Array[Long]]
+      val participantsValue = if (participants.nonEmpty) participants.get else null
       for {
-        group <- Group.createGroup(uid, name, avatar, groupType, isPublic, if (participants.nonEmpty) participants.get else null)
+        group <- Group.createGroup(uid, name, avatar, groupType, isPublic, participantsValue)
+        // TODO
+        sendUser <- Group.getUserInfo(Seq(uid), Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
+        receiverUser <- Group.getUserInfo(participantsValue, Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
+        msg <- Chat.sendMessage(100, "", receiverUser(0).getUserId, sendUser(0).getUserId, "CMD")
         conversation <- Chat.groupConversation(group)
       } yield {
         val result = JsObject(Seq(
@@ -161,7 +167,7 @@ object GroupCtrl extends Controller {
       val jsonNode = request.body.asJson.get
       val action = (jsonNode \ "action").asOpt[String].get
       val participants = (jsonNode \ "participants").asOpt[Array[Long]].get
-      Group.opGroup(gid, action, participants,uid).map(v => Helpers.JsonResponse())
+      Group.opGroup(gid, action, participants, uid).map(v => Helpers.JsonResponse())
     }
   }
 

@@ -4,7 +4,6 @@ import controllers.GroupCtrl
 import core.connector.MorphiaFactory
 import models.{Group, Sequence, UserInfo}
 import org.mongodb.morphia.query.{Query, UpdateOperations}
-
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
@@ -28,7 +27,6 @@ object Group {
    * @param name
    * @param groupType
    * @param isPublic
-   * @return
    */
   def createGroup(creator: Long, name: String, avatar: String, groupType: String, isPublic: Boolean, member: Seq[Long]): Future[Group] = {
 
