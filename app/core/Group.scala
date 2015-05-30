@@ -154,7 +154,7 @@ object Group {
 
         }
 
-        group <- getGroup(gId, Seq(models.AbstractEntity.FD_ID))
+        group <- getGroup(gId, Seq(models.AbstractEntity.FD_ID,models.Group.FD_NAME,models.Group.FD_AVATAR))
         sendUser <- getUserInfo(Seq(sender), Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
         receiverUser <- getUserInfo(members, Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
         //msg <- Cmd.sendGroupCmdMessage(action, group, sendUser(0), receiverUser)
