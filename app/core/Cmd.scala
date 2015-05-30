@@ -107,7 +107,7 @@ object CmdInfo {
       "userId" -> JsNumber(user.getUserId.toLong),
       "nickName" -> JsString(user.getNickName),
       "avatar" -> JsString(user.getAvatar),
-      "groupId" -> JsString(group.getGroupId.toString),
+      "groupId" -> JsNumber(group.getGroupId.toLong),
       "groupName" -> JsString(group.getName),
       "groupAvatar" -> JsString(group.getAvatar)
     )
