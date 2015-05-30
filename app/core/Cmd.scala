@@ -96,16 +96,18 @@ object CmdInfo {
       case GroupCtrl.ACTION_DELMEMBERS => GROUP_ACTION_REMOVE
     }
     JsObject(Seq(
-      "messageType" -> JsNumber(mType),
-      "contents" -> JsObject(Seq(
-        "action" -> JsString(msgAction),
-        "userId" -> JsNumber(user.getUserId.toLong),
-        "nickName" -> JsString(user.getNickName),
-        "avatar" -> JsString(user.getAvatar),
-        "groupId" -> JsString(group.getGroupId.toString),
-        "groupName" -> JsString(group.getName),
-        "groupAvatar" -> JsString(group.getAvatar)
-      ))
-    ))
+      // "messageType" -> JsNumber(mType),
+      //  "contents" -> JsObject(Seq(
+      "action" -> JsString(msgAction),
+      "userId" -> JsNumber(user.getUserId.toLong),
+      "nickName" -> JsString(user.getNickName),
+      "avatar" -> JsString(user.getAvatar),
+      "groupId" -> JsString(group.getGroupId.toString),
+      "groupName" -> JsString(group.getName),
+      "groupAvatar" -> JsString(group.getAvatar)
+    )
+      //)
+      //)
+    )
   }
 }

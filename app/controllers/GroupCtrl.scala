@@ -2,7 +2,7 @@ package controllers
 
 
 import controllers.ChatCtrl.MessageInfo
-import core.{Chat, Group}
+import core.{CmdInfo, Chat, Group}
 import core.json.{GroupSimpleFormatter, UserInfoSimpleFormatter, MessageFormatter}
 import models.UserInfo
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -41,7 +41,7 @@ object GroupCtrl extends Controller {
           // TODO
           sendUser <- Group.getUserInfo(Seq(uid), Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
           receiverUser <- Group.getUserInfo(participantsValue, Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
-          msg <- Chat.sendMessage(100, "", receiverUser(0).getUserId, sendUser(0).getUserId, "CMD")
+          msg <- Chat.sendMessage(100, CmdInfo.createCmd(GroupCtrl.ACTION_ADDMEMBERS, 100, group, sendUser(0)).toString(), receiverUser(0).getUserId, sendUser(0).getUserId, "CMD")
         } yield msg
       }
       for {

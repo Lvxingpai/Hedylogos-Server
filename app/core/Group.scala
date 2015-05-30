@@ -158,8 +158,7 @@ object Group {
         sendUser <- getUserInfo(Seq(sender), Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
         receiverUser <- getUserInfo(members, Seq(UserInfo.fnUserId, UserInfo.fnNickName, UserInfo.fnAvatar))
         //msg <- Cmd.sendGroupCmdMessage(action, group, sendUser(0), receiverUser)
-        // CmdInfo.createCmd(action, 100, group, sendUser(0)).toString()
-        msg <- Chat.sendMessage(100, "", receiverUser(0).getUserId, sendUser(0).getUserId, "CMD")
+        msg <- Chat.sendMessage(100, CmdInfo.createCmd(action, 100, group, sendUser(0)).toString(), receiverUser(0).getUserId, sendUser(0).getUserId, "CMD")
         chat <- Chat.opGroupConversation(group, members, action.equals(GroupCtrl.ACTION_ADDMEMBERS))
       } chat
     }
