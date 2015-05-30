@@ -82,7 +82,12 @@ object Cmd {
 
 object CmdInfo {
 
-  val DISCUSSION_ACTION_ADD = "D_INVITE"
+  val DISCUSSION_ACTION_INVITE_ADD = "D_INVITE"
+  val DISCUSSION_ACTION_APPLY_ADD = "D_APPLY"
+  val DISCUSSION_ACTION_AGREE_ADD = "D_AGREE"
+  val DISCUSSION_ACTION_QUIT = "D_QUIT"
+  val DISCUSSION_ACTION_REMOVE = "D_REMOVE"
+  val DISCUSSION_ACTION_DESTROY = "D_DESTROY"
   val GROUP_ACTION_APPLY_ADD = "G_APPLY"
   val GROUP_ACTION_AGREE_ADD = "G_AGREE"
   val GROUP_ACTION_INVITE_ADD = "G_INVITE"
@@ -92,8 +97,8 @@ object CmdInfo {
 
   def createCmd(action: String, mType: Int, group: models.Group, user: UserInfo): JsValue = {
     val msgAction = action match {
-      case GroupCtrl.ACTION_ADDMEMBERS => GROUP_ACTION_INVITE_ADD
-      case GroupCtrl.ACTION_DELMEMBERS => GROUP_ACTION_REMOVE
+      case GroupCtrl.ACTION_ADDMEMBERS => DISCUSSION_ACTION_INVITE_ADD
+      case GroupCtrl.ACTION_DELMEMBERS => DISCUSSION_ACTION_REMOVE
     }
     JsObject(Seq(
       // "messageType" -> JsNumber(mType),
