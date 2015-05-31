@@ -25,3 +25,11 @@ libraryDependencies ++= Seq(
   cache,
   ws
 )
+
+publishTo := {
+  val nexus = "http://nexus.lvxingpai.com/content/repositories/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "snapshots")
+  else
+    Some("releases"  at nexus + "releases")
+}
