@@ -1,6 +1,6 @@
-import com.mongodb.ServerAddress
 import core.GlobalConfig
 import core.connector.MorphiaFactory
+import models.Conversation
 import play.api.{Application, GlobalSettings, Logger}
 
 object Global extends GlobalSettings {
@@ -9,14 +9,15 @@ object Global extends GlobalSettings {
     Logger.info("Application has started")
 
     val conf = GlobalConfig.playConf
-    val host = conf.getString("mongo.host").get
-    val port = conf.getInt("mongo.port").get
-    MorphiaFactory.initialize(Array(new ServerAddress(host, port)))
+
+    val ds = MorphiaFactory.datastore
+
+    val conv = new Conversation()
+
+    ds.save[Conversation](conv)
   }
 
   override def onStop(app: Application) {
     Logger.info("Application shutdown...")
   }
-
-
 }

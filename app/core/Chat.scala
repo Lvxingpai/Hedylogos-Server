@@ -1,7 +1,5 @@
 package core
 
-import java.util.Arrays
-
 import com.mongodb.DuplicateKeyException
 import core.connector.{HedyRedis, MorphiaFactory}
 import core.mio.{GetuiService, MongoStorage, RedisMessaging}
@@ -16,7 +14,7 @@ import scala.concurrent.Future
  * Created by zephyre on 4/20/15.
  */
 object Chat {
-  val ds = MorphiaFactory.getDatastore()
+  val ds = MorphiaFactory.datastore
 
   /**
    * 通过id获得conversation信息

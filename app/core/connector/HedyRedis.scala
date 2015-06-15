@@ -3,14 +3,17 @@ package core.connector
 import com.redis.RedisClientPool
 import core.GlobalConfig
 
+import scala.collection.JavaConversions._
+
 
 /**
  * Created by zephyre on 4/21/15.
  */
 object HedyRedis {
   val clients = {
-    val configHost = GlobalConfig.playConf.getString("redis.host").getOrElse("localhost")
-    val configPort = GlobalConfig.playConf.getInt("redis.port").getOrElse(6379)
-    new RedisClientPool(configHost, configPort)
+    val tmp = GlobalConfig.playConf.getConfig("backends.rabbitmq").entrySet().toSeq.head.getValue.toString.split("/")
+    val host = tmp(0)
+    val port = tmp(1).toInt
+    new RedisClientPool(host, port)
   }
 }

@@ -20,10 +20,11 @@ import scala.concurrent.Future
  */
 object GetuiService extends MessageDeliever {
 
-  val master = GlobalConfig.playConf.getString("getui.master").get
-  val host = GlobalConfig.playConf.getString("getui.host").get
-  val gtAppId = GlobalConfig.playConf.getString("getui.appId").get
-  val gtAppKey = GlobalConfig.playConf.getString("getui.appKey").get
+  val conf = GlobalConfig.playConf.getConfig("hedylogos")
+  val master = conf.getString("getui.master")
+  val host = conf.getString("getui.host")
+  val gtAppId = conf.getString("getui.appId")
+  val gtAppKey = conf.getString("getui.appKey")
   val gtPush = new IGtPush(host, gtAppKey, master)
 
   private def sendTransmission(msg: Message, clientIdList: Seq[String]): Unit = {

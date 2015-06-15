@@ -15,10 +15,10 @@ import scala.concurrent.Future
  * Created by zephyre on 4/20/15.
  */
 object Group {
-  val ds = MorphiaFactory.getDatastore()
-  val miscDs = MorphiaFactory.getDatastore("misc")
-  val groupDs = MorphiaFactory.getDatastore("group")
-  val userDs = MorphiaFactory.getDatastore("user")
+  val ds = MorphiaFactory.datastore
+  val miscDs = ds
+  val groupDs = ds
+  val userDs = ds
 
   /**
    * 创建群组

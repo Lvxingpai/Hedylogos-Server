@@ -1,10 +1,12 @@
 name := """Hedylogos"""
 
-version := "1.0-SNAPSHOT"
+organization := "com.lvxingpai"
+
+version := "1.0"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.11.1"
+scalaVersion := "2.10.4"
 
 libraryDependencies ++= Seq(
   "org.mongodb" % "mongo-java-driver" % "3.0.0",
@@ -20,6 +22,7 @@ libraryDependencies ++= Seq(
   "net.debasishg" %% "redisclient" % "2.15",
   "com.qiniu" % "qiniu-java-sdk" % "7.0.0",
   "net.databinder.dispatch" %% "dispatch-core" % "0.11.2",
+  "com.lvxingpai" %% "appconfig" % "0.1.2-SNAPSHOT",
   jdbc,
   anorm,
   cache,
@@ -29,7 +32,7 @@ libraryDependencies ++= Seq(
 publishTo := {
   val nexus = "http://nexus.lvxingpai.com/content/repositories/"
   if (isSnapshot.value)
-    Some("snapshots" at nexus + "snapshots")
+    Some("publishSnapshots" at nexus + "snapshots")
   else
-    Some("releases"  at nexus + "releases")
+    Some("publishReleases"  at nexus + "releases")
 }

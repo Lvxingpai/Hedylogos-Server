@@ -1,8 +1,9 @@
 package core.connector
 
-import com.mongodb.{MongoClientOptions, MongoClient, ServerAddress}
-import models.Conversation
-import org.mongodb.morphia.{Datastore, Morphia}
+import com.mongodb.{MongoClient, MongoClientOptions, MongoCredential, ServerAddress}
+import core.GlobalConfig
+import models.{Conversation, UserInfo}
+import org.mongodb.morphia.Morphia
 
 import scala.collection.JavaConversions._
 
@@ -11,19 +12,28 @@ import scala.collection.JavaConversions._
  */
 object MorphiaFactory {
 
-  private var client: MongoClient = null
-  val morphia = new Morphia()
-
-  def getDatastore(dbName: String = "default"): Datastore = {
-    val ds = morphia.createDatastore(client, dbName)
-    ds.ensureIndexes()
-    ds.ensureCaps()
-    ds
+  lazy val morphia = {
+    val m = new Morphia()
+    m.map(classOf[Conversation], classOf[models.Group], classOf[models.Message], classOf[models.Sequence],
+      classOf[UserInfo])
+    m
   }
 
-  def initialize(serverList: Seq[ServerAddress]): Unit = {
-    client = new MongoClient(serverList)
-    val cl = new MongoClientOptions.Builder()
+  lazy val client = {
+    val conf = GlobalConfig.playConf
+
+    val mongoBackends = conf.getConfig("backends.mongo").entrySet().toSeq
+    val serverAddress = mongoBackends map (backend =>{
+      val tmp = backend.getValue.unwrapped().toString.split(":")
+      val host = tmp(0)
+      val port=tmp(1).toInt
+      new ServerAddress(host, port)
+    })
+    val user = conf.getString("hedylogos.server.mongo.user")
+    val password = conf.getString("hedylogos.server.mongo.password")
+    val credential=MongoCredential.createScramSha1Credential(user, "admin", password.toCharArray)
+
+    val options = new MongoClientOptions.Builder()
       //连接超时
       .connectTimeout(60000)
       //IO超时
@@ -32,6 +42,15 @@ object MorphiaFactory {
       .connectionsPerHost(50)
       //每个连接可以有多少线程排队等待
       .threadsAllowedToBlockForConnectionMultiplier(50)
-    //morphia.map(classOf[Conversation])
+    .build()
+
+    new MongoClient(serverAddress, Seq(credential), options)
+  }
+
+  lazy val datastore = {
+    val ds = morphia.createDatastore(client, "hedy")
+    ds.ensureIndexes()
+    ds.ensureCaps()
+    ds
   }
 }
