@@ -1,13 +1,15 @@
 package controllers
 
+import com.typesafe.config.Config
 import controllers.ChatCtrl.MessageInfo
+import core.GlobalConfig
 import core.GlobalConfig.playConf
-import core.Group
 import core.qiniu.QiniuClient
 import org.bson.types.ObjectId
-import play.api.Configuration
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
+
+import scala.collection.JavaConversions._
 
 /**
  * Created by zephyre on 4/25/15.
@@ -19,6 +21,9 @@ object MiscCtrl extends Controller {
       val jsonBody = request.body.asJson.get
       val key = java.util.UUID.randomUUID.toString
       val action = (jsonBody \ "action").asOpt[Int].get
+
+      implicit val playConf = GlobalConfig.playConf.getConfig("hedylogos")
+
       val token = action match {
         case 1 | 2 => sendMessageToken(key = key, action = action)
         case _ => throw new IllegalArgumentException
@@ -35,7 +40,7 @@ object MiscCtrl extends Controller {
    *
    * @return
    */
-  private def sendMessageToken(bucket: String = "imres", key: String, action: Int)(implicit playConf: Configuration): String = {
+  private def sendMessageToken(bucket: String = "imres", key: String, action: Int)(implicit playConf: Config ): String = {
     // 生成Map(location->x:location, price->x:price)之类的用户自定义变量
     // 参见：http://developer.qiniu.com/docs/v6/api/overview/up/response/vars.html#xvar
 
@@ -60,8 +65,8 @@ object MiscCtrl extends Controller {
 
     val params = urlencode(Map(customParams ++ magicParams :+ "action" -> action.toString: _*))
 
-    val host = playConf.getString("server.host").get
-    val scheme = playConf.getString("server.scheme").get
+    val host = playConf.getString("server.host")
+    val scheme = playConf.getString("server.scheme")
     val href = routes.MiscCtrl.qiniuCallback().url
     val callbackUrl = s"$scheme://$host$href"
     val expire = 3600
@@ -111,7 +116,8 @@ object MiscCtrl extends Controller {
     val key = postMap.get("key").get
 
     // 获得contents内容
-    val host = playConf.getString(s"qiniu.bucket.$bucket").get
+    val conf = playConf.getConfig("hedylogos")
+    val host = conf.getString(s"qiniu.bucket.$bucket")
     val baseUrl = s"http://$host/$key"
     val styleSeparator = "!"
     val expire = 7 * 24 * 3600
@@ -130,9 +136,14 @@ object MiscCtrl extends Controller {
         def buildUrlFromStyle(style: String): String = baseUrl +
           (if (style.nonEmpty) "%s%s".format(styleSeparator, style) else "")
 
+        val entries = conf.getConfig("qiniu.style").entrySet.toSeq
         val styleSet = for {
-          (prop, value) <- playConf.getConfig("qiniu.style").get.entrySet
-        } yield prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(value.unwrapped.toString), expire))
+          entry <- entries
+        } yield {
+            val prop = entry.getKey
+            val style = entry.getValue
+            prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(style.unwrapped().toString), expire))
+          }
 
         JsObject(Seq(
           "width" -> JsNumber((imageInfo \ "width").asOpt[Int].get),

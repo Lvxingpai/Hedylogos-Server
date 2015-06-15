@@ -1,15 +1,15 @@
 package core
 
-import play.api.Logger
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import controllers.GroupCtrl
 import core.connector.MorphiaFactory
 import core.mio.{GetuiService, MongoStorage, RedisMessaging}
 import models.{Conversation, Message, UserInfo}
 import org.bson.types.ObjectId
+import play.api.Logger
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json.{JsNumber, JsObject, JsString, JsValue}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 
 /**
@@ -19,7 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 object Cmd {
 
-  val ds = MorphiaFactory.getDatastore()
+  val ds = MorphiaFactory.datastore
   val CMD_CHAT_TYPE = "CMD"
   val GROUP_CMD_CONVERSATION_FINGER = "CMD"
   val GROUP_CMD_MESSAGE_TYPE = 100
