@@ -54,7 +54,7 @@ object Group {
       val query: Query[Sequence] = miscDs.createQuery(classOf[Sequence])
       query.field("column").equal(Sequence.GROUPID)
       val ops: UpdateOperations[Sequence] = miscDs.createUpdateOperations(classOf[Sequence]).inc("count")
-      val ret: Sequence = miscDs.findAndModify(query, ops)
+      val ret: Sequence = miscDs.findAndModify(query, ops, false, true)
       ret.count
     }
   }
