@@ -23,15 +23,15 @@ object MorphiaFactory {
     val conf = GlobalConfig.playConf
 
     val mongoBackends = conf.getConfig("backends.mongo").entrySet().toSeq
-    val serverAddress = mongoBackends map (backend =>{
+    val serverAddress = mongoBackends map (backend => {
       val tmp = backend.getValue.unwrapped().toString.split(":")
       val host = tmp(0)
-      val port=tmp(1).toInt
+      val port = tmp(1).toInt
       new ServerAddress(host, port)
     })
     val user = conf.getString("hedylogos.server.mongo.user")
     val password = conf.getString("hedylogos.server.mongo.password")
-    val credential=MongoCredential.createScramSha1Credential(user, "admin", password.toCharArray)
+    val credential = MongoCredential.createScramSha1Credential(user, "admin", password.toCharArray)
 
     val options = new MongoClientOptions.Builder()
       //连接超时
@@ -42,7 +42,7 @@ object MorphiaFactory {
       .connectionsPerHost(50)
       //每个连接可以有多少线程排队等待
       .threadsAllowedToBlockForConnectionMultiplier(50)
-    .build()
+      .build()
 
     new MongoClient(serverAddress, Seq(credential), options)
   }
