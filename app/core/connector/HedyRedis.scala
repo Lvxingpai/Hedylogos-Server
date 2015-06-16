@@ -11,7 +11,8 @@ import scala.collection.JavaConversions._
  */
 object HedyRedis {
   val clients = {
-    val tmp = GlobalConfig.playConf.getConfig("backends.rabbitmq").entrySet().toSeq.head.getValue.toString.split("/")
+    val tmp = GlobalConfig.playConf.getConfig("backends.redis").entrySet().toSeq.head.getValue.unwrapped()
+      .toString.split(":")
     val host = tmp(0)
     val port = tmp(1).toInt
     new RedisClientPool(host, port)
