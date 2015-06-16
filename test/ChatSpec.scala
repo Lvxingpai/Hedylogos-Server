@@ -27,7 +27,7 @@ class ChatSpec extends Specification with SyncInvoke {
         c.getFingerprint must beEqualTo(fp)
         c.getMsgCounter must beEqualTo(0)
       } finally {
-        val ds = MorphiaFactory.getDatastore()
+        val ds = MorphiaFactory.datastore
         val query = ds.createQuery(classOf[Conversation]).field(Conversation.FD_FINGERPRINT).equal(fp)
         ds.delete(query)
       }
