@@ -16,22 +16,22 @@ import play.api.test.WithApplication
 @RunWith(classOf[JUnitRunner])
 class ChatSpec extends Specification with SyncInvoke {
   "Chat core functionality" should {
-//    "Lookup peer-to-peer conversations" in new WithApplication() {
-//      val userA: Long = 903
-//      val userB: Long = 901
-//      val fp = s"$userB.$userA"
-//      try {
-//        val c = syncInvoke[Option[Conversation]](Chat.singleConversation(userA, userB)).get
-//        c.getCreateTime must beEqualTo(c.getUpdateTime)
-//
-//        c.getFingerprint must beEqualTo(fp)
-//        c.getMsgCounter must beEqualTo(0)
-//      } finally {
-////        val ds = MorphiaFactory.getDatastore()
-////        val query = ds.createQuery(classOf[Conversation]).field(Conversation.FD_FINGERPRINT).equal(fp)
-////        ds.delete(query)
-//      }
-//    }
+    "Lookup peer-to-peer conversations" in new WithApplication() {
+      val userA: Long = 903
+      val userB: Long = 901
+      val fp = s"$userB.$userA"
+      try {
+        val c = syncInvoke[Option[Conversation]](Chat.singleConversation(userA, userB)).get
+        c.getCreateTime must beEqualTo(c.getUpdateTime)
+
+        c.getFingerprint must beEqualTo(fp)
+        c.getMsgCounter must beEqualTo(0)
+      } finally {
+//        val ds = MorphiaFactory.getDatastore()
+//        val query = ds.createQuery(classOf[Conversation]).field(Conversation.FD_FINGERPRINT).equal(fp)
+//        ds.delete(query)
+      }
+    }
 
     "Handle message IDs" in new WithApplication() {
       val cid = new ObjectId
