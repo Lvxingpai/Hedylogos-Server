@@ -4,9 +4,11 @@ organization := "com.lvxingpai"
 
 version := "1.0"
 
-lazy val root = (project in file(".")).enablePlugins(PlayScala)
+lazy val root = (project in file(".")).enablePlugins(PlayScala,ScroogeSBT)
 
 scalaVersion := "2.10.4"
+
+val finagleVersion = "6.25.0"
 
 libraryDependencies ++= Seq(
   "org.mongodb" % "mongo-java-driver" % "3.0.0",
@@ -23,6 +25,12 @@ libraryDependencies ++= Seq(
   "com.qiniu" % "qiniu-java-sdk" % "7.0.0",
   "net.databinder.dispatch" %% "dispatch-core" % "0.11.2",
   "com.lvxingpai" %% "appconfig" % "0.1.2-SNAPSHOT",
+  "org.apache.thrift" % "libthrift" % "0.9.2",
+  "com.twitter" %% "scrooge-core" % "3.18.1",
+  "com.twitter" %% "finagle-thrift" % finagleVersion,
+  "com.twitter" %% "finagle-core" % finagleVersion,
+  "com.twitter" %% "finagle-thrift" % finagleVersion,
+  "com.twitter" %% "finagle-thriftmux" % finagleVersion,
   jdbc,
   anorm,
   cache,
@@ -34,5 +42,5 @@ publishTo := {
   if (isSnapshot.value)
     Some("publishSnapshots" at nexus + "snapshots")
   else
-    Some("publishReleases"  at nexus + "releases")
+    Some("publishReleases" at nexus + "releases")
 }
