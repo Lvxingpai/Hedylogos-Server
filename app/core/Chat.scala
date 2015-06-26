@@ -3,6 +3,7 @@ package core
 import com.mongodb.DuplicateKeyException
 import core.connector.{HedyRedis, MorphiaFactory}
 import core.mio.{GetuiService, MongoStorage, RedisMessaging}
+import models.Message.MessageType
 import models._
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -124,23 +125,8 @@ object Chat {
     }
   }
 
-  def buildMessage(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] = {
-    val msg = new Message()
-    msg.setId(new ObjectId())
-    msg.setContents(contents)
-    msg.setMsgType(msgType)
-    msg.setTimestamp(System.currentTimeMillis)
-    msg.setConversation(cid)
-    msg.setSenderId(sender)
-    msg.setReceiverId(receiver)
-    msg.setChatType(chatType)
-
-    val futureMsgId = generateMsgId(cid)
-    futureMsgId.map(v => {
-      msg.setMsgId(v.get)
-      msg
-    })
-  }
+  def buildMessage(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] =
+    generateMsgId(cid) map (v => Message(MessageType(msgType), contents, cid, v.get, receiver, sender, chatType))
 
   def buildMessage(msgType: Int, contents: String, cidList: Seq[ObjectId], receiver: Long, sender: Long, chatType: String): Future[Seq[Message]] = {
     def cidList2Message(cids: Seq[ObjectId]): Seq[Message] = {

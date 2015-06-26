@@ -5,6 +5,7 @@ import controllers.ChatCtrl.MessageInfo
 import core.GlobalConfig
 import core.GlobalConfig.playConf
 import core.qiniu.QiniuClient
+import models.Message.MessageType
 import org.bson.types.ObjectId
 import play.api.libs.json._
 import play.api.mvc.{Action, Controller}
@@ -20,17 +21,12 @@ object MiscCtrl extends Controller {
     request => {
       val jsonBody = request.body.asJson.get
       val key = java.util.UUID.randomUUID.toString
-      val action = (jsonBody \ "action").asOpt[Int].get
+      val msgType = MessageType((jsonBody \ "msgType").asOpt[Int].get)
 
       implicit val playConf = GlobalConfig.playConf.getConfig("hedylogos")
 
-      val token = action match {
-        case 1 | 2 => sendMessageToken(key = key, action = action)
-        case _ => throw new IllegalArgumentException
-      }
-
+      val token = sendMessageToken(key = key, msgType = msgType)
       val result = JsObject(Seq("key" -> JsString(key), "token" -> JsString(token)))
-
       Helpers.JsonResponse(data = Some(result))
     }
   }
@@ -40,7 +36,8 @@ object MiscCtrl extends Controller {
    *
    * @return
    */
-  private def sendMessageToken(bucket: String = "imres", key: String, action: Int)(implicit playConf: Config ): String = {
+  private def sendMessageToken(bucket: String = "imres", key: String, msgType: MessageType.Value)
+                              (implicit playConf: Config): String = {
     // 生成Map(location->x:location, price->x:price)之类的用户自定义变量
     // 参见：http://developer.qiniu.com/docs/v6/api/overview/up/response/vars.html#xvar
 
@@ -54,16 +51,25 @@ object MiscCtrl extends Controller {
     }
 
     // 自定义变量
-    val customParams = for {
-      key <- Seq("sender", "chatType", "receiver", "conversation", "msgType", "action")
-    } yield key -> "$(x:%s)".format(key)
+    val customParams = Seq("sender", "chatType", "receiver", "conversation", "msgType") ++ (msgType match {
+      case MessageType.IMAGE | MessageType.AUDIO => Seq()
+      case MessageType.LOCATION => Seq("lat", "lng", "address")
+      case _ => throw new IllegalArgumentException
+    }) map (key => {
+      key -> ("$(x:%s)" format key)
+    })
 
     // 魔法变量
-    val magicParams = for {
-      key <- Seq("bucket", "etag", "key", "fname", "fsize", "mimeType", "imageInfo", "avinfo", "imageAve")
-    } yield key -> "$(%s)".format(key)
+    val magicParams = Seq("bucket", "etag", "key", "fname", "fsize", "mimeType") ++ (msgType match {
+      case MessageType.IMAGE => Seq("imageInfo", "imageAve")
+      case MessageType.AUDIO => Seq("avinfo")
+      case MessageType.LOCATION => Seq()
+      case _ => throw new IllegalArgumentException
+    }) map (key => {
+      key -> ("$(%s)" format key)
+    })
 
-    val params = urlencode(Map(customParams ++ magicParams :+ "action" -> action.toString: _*))
+    val params = urlencode(Map(customParams ++ magicParams: _*))
 
     val host = playConf.getString("server.host")
     val scheme = playConf.getString("server.scheme")
@@ -94,10 +100,58 @@ object MiscCtrl extends Controller {
       val postMap = Map(postBody.toSeq filter ((item: (String, Seq[String])) =>
         item._2.nonEmpty && item._2.head.nonEmpty): _*).mapValues(_.head)
 
-      postMap("action") match {
-        case "1" | "2" => qiniuSendMessageCallback(postMap)
+      val msgType = MessageType(postMap("msgType").toInt)
+      val senderId = postMap.get("sender").get.toLong
+      val chatType = postMap.get("chatType").get.toString
+      val recvId = postMap.get("receiver").map(_.toLong)
+      val cid = postMap.get("conversation").map(v => new ObjectId(v))
+      val bucket = postMap.get("bucket").get
+      val key = postMap.get("key").get
+
+      // 获得contents内容
+      val conf = playConf.getConfig("hedylogos")
+      val host = conf.getString(s"qiniu.bucket.$bucket")
+      val baseUrl = s"http://$host/$key"
+      val styleSeparator = "!"
+      val expire = 7 * 24 * 3600
+
+      def buildUrlFromStyle(style: String): String = baseUrl +
+        (if (style.nonEmpty) "%s%s".format(styleSeparator, style) else "")
+
+      val contents = JsObject(msgType match {
+        case MessageType.IMAGE =>
+          val imageInfo = Json.parse(postMap.get("imageInfo").get)
+
+          val entries = conf.getConfig("qiniu.style").entrySet.toSeq
+          val styleSet = for {
+            entry <- entries
+          } yield {
+              val prop = entry.getKey
+              val style = entry.getValue
+              prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(style.unwrapped().toString), expire))
+            }
+          Seq(
+            "width" -> JsNumber((imageInfo \ "width").asOpt[Int].get),
+            "height" -> JsNumber((imageInfo \ "height").asOpt[Int].get)
+          ) ++ styleSet.toSeq
+        case MessageType.AUDIO =>
+          val avinfo = Json.parse(postMap.get("avinfo").get)
+          val duration = (avinfo \ "audio" \ "duration").asOpt[String].get.toDouble
+
+          Seq(
+            "url" -> JsString(QiniuClient.privateDownloadUrl(baseUrl, expire)),
+            "duration" -> JsNumber(duration))
+        case MessageType.LOCATION =>
+          Seq(
+            "snapshot" -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle("thumb"), expire)),
+            "lat" -> JsNumber(postMap("lat").toDouble),
+            "lng" -> JsNumber(postMap("lng").toDouble),
+            "address" -> JsString(postMap("address"))
+          )
         case _ => throw new IllegalArgumentException
-      }
+      }).toString
+
+      ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId, cid, msgType.id, Some(contents)))
     }
   }
 
