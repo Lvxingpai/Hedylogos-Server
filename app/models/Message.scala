@@ -75,6 +75,7 @@ object Message {
     message.receiverId = receiver
     message.senderId = sender
     message.chatType = chatType
+    message.timestamp = System.currentTimeMillis()
     message
   }
 }
