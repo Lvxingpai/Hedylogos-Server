@@ -21,6 +21,7 @@ object MorphiaFactory {
 
   lazy val client = {
     val conf = GlobalConfig.playConf
+    val dbName = conf.getString("hedylogos.server.mongo.db")
 
     val mongoBackends = conf.getConfig("backends.mongo").entrySet().toSeq
     val serverAddress = mongoBackends map (backend => {
@@ -31,7 +32,7 @@ object MorphiaFactory {
     })
     val user = conf.getString("hedylogos.server.mongo.user")
     val password = conf.getString("hedylogos.server.mongo.password")
-    val credential = MongoCredential.createScramSha1Credential(user, "admin", password.toCharArray)
+    val credential = MongoCredential.createScramSha1Credential(user, dbName, password.toCharArray)
 
     val options = new MongoClientOptions.Builder()
       //连接超时
@@ -48,7 +49,8 @@ object MorphiaFactory {
   }
 
   lazy val datastore = {
-    val ds = morphia.createDatastore(client, "hedy")
+    val dbName = GlobalConfig.playConf.getString("hedylogos.server.mongo.db")
+    val ds = morphia.createDatastore(client, dbName)
     ds.ensureIndexes()
     ds.ensureCaps()
     ds

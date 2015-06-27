@@ -1,7 +1,6 @@
 package core.qiniu
 
 import com.qiniu.util.{Auth, StringMap}
-import com.typesafe.config.Config
 import core.GlobalConfig.playConf
 
 /**
@@ -9,9 +8,10 @@ import core.GlobalConfig.playConf
  */
 object QiniuClient {
 
-  private def getConfig(implicit playConf: Config): Map[String, String] =
+  private def getConfig: Map[String, String] = {
     Map("accessKey" -> playConf.getString("hedylogos.qiniu.accessKey"),
       "secretKey" -> playConf.getString("hedylogos.qiniu.secretKey"))
+  }
 
   val secretKey = getConfig apply "secretKey"
 

@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
   "net.debasishg" %% "redisclient" % "2.15",
   "com.qiniu" % "qiniu-java-sdk" % "7.0.0",
   "net.databinder.dispatch" %% "dispatch-core" % "0.11.2",
-  "com.lvxingpai" %% "appconfig" % "0.1.2-SNAPSHOT",
+  "com.lvxingpai" %% "appconfig" % "0.1.3-SNAPSHOT",
   jdbc,
   anorm,
   cache,
