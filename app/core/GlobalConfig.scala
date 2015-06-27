@@ -13,18 +13,21 @@ import scala.language.postfixOps
  * Created by zephyre on 4/17/15.
  */
 object GlobalConfig {
-//  implicit val playConf = buildConfig()
-
-  implicit val playConf = {
+  lazy val playConf = {
     val defaultConf = AppConfig.defaultConfig
 
     // 是否为生产环境
     val isProduction = defaultConf.hasPath("runlevel") && defaultConf.getString("runlevel") == "production"
     val mongoKey = if (isProduction) "mongo" else "mongo-dev"
+    val confKeys = if (isProduction)
+      Seq("hedylogos" -> "hedylogos")
+    else
+      Seq("hedylogos-dev" -> "hedylogos", "hedylogos" -> "hedylogos")
+
     val timeout = 30 seconds
 
     Await.result(AppConfig.buildConfig(
-      Some(Seq("hedylogos" -> "hedylogos")),
+      Some(confKeys),
       Some(Seq(mongoKey -> "mongo", "redis-main" -> "redis"))),
       timeout)
   }
