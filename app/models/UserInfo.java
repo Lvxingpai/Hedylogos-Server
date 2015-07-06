@@ -23,9 +23,6 @@ public class UserInfo extends AbstractEntity {
     public static String fnAvatar = "avatar";
 
     @Transient
-    public static String fnGender = "gender";
-
-    @Transient
     public static String fnUserId = "userId";
 
     @Transient
@@ -84,6 +81,18 @@ public class UserInfo extends AbstractEntity {
 
     @Transient
     public static String fnZodiac = "zodiac";
+
+    @Transient
+    public static String fnGender = "gender";
+    @Transient
+    public static String fnGender_F = "F";
+    @Transient
+    public static String fnGender_M = "M";
+
+    @Transient
+    public static String fnGender_S = "Secret";
+    @Transient
+    public static String fnGender_None = "None";
     /**
      * 昵称
      */

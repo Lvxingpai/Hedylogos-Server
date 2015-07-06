@@ -1,13 +1,14 @@
 package controllers
 
+import core.finagle.FinagleCore
 import core.{Group, Chat}
+import models._
 import core.json.MessageFormatter
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
+import core.finagle.TwitterConverter._
 import play.api.mvc.{Action, Controller, Result}
-
-import scala.collection.generic.SeqFactory
 import scala.concurrent.Future
 
 /**
@@ -25,14 +26,14 @@ object ChatCtrl extends Controller {
     val cid = msgInfo.cid
     val chatType = msgInfo.chatType
 
-    val futureMsg =
+    val futureMsg: Future[Message] =
       if (cid.nonEmpty)
         Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
       else if (chatType.equals(SEND_TYPE_SINGLE))
         Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
       else if (chatType.equals(SEND_TYPE_GROUP))
         for {
-          group <- Group.getGroup(msgInfo.receiverId.get, Seq(models.AbstractEntity.FD_ID))
+          group <- FinagleCore.getGroupObjId(msgInfo.receiverId.get)
           chat <- Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), group.getId, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
         } yield chat
       else null
@@ -40,8 +41,8 @@ object ChatCtrl extends Controller {
     futureMsg.map(msg => {
       val result = JsObject(Seq(
         "conversation" -> JsString(msg.getConversation.toString),
-        "msgId" -> JsNumber(msg.getMsgId.toLong),
-        "timestamp" -> JsNumber(msg.getTimestamp.toLong)
+        "msgId" -> JsNumber(msg.getMsgId),
+        "timestamp" -> JsNumber(msg.getTimestamp)
       ))
       Helpers.JsonResponse(data = Some(result))
     })

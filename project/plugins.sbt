@@ -18,3 +18,7 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-rjs" % "1.0.1")
 addSbtPlugin("com.typesafe.sbt" % "sbt-digest" % "1.0.0")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-mocha" % "1.0.0")
+
+addSbtPlugin("com.twitter" % "scrooge-sbt-plugin" % "3.18.1")
+
+addSbtPlugin("com.typesafe.sbt" % "sbt-scalariform" % "1.3.0")
