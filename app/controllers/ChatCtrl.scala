@@ -1,15 +1,16 @@
 package controllers
 
+import core.Chat
 import core.finagle.FinagleCore
-import core.{ Group, Chat }
-import models._
 import core.json.MessageFormatter
+import models._
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
-import core.finagle.TwitterConverter._
-import play.api.mvc.{ Action, Controller, Result }
+import play.api.mvc.{ Action, Controller, Result, Results }
+
 import scala.concurrent.Future
+import scala.language.postfixOps
 
 /**
  * Created by zephyre on 4/23/15.
@@ -51,15 +52,32 @@ object ChatCtrl extends Controller {
   def sendMessage() = Action.async {
     request =>
       {
-        val jsonNode = request.body.asJson.get
-        val senderId = (jsonNode \ "sender").asOpt[Long].get
-        val chatType = (jsonNode \ "chatType").asOpt[String].get
-        val receiverId = (jsonNode \ "receiver").asOpt[Long]
-        val cid = (jsonNode \ "conversation").asOpt[String].map(v => new ObjectId(v))
-        val msgType = (jsonNode \ "msgType").asOpt[Int].get
-        val contents = (jsonNode \ "contents").asOpt[String]
-
-        sendMessageBase(MessageInfo(senderId, chatType, receiverId, cid, msgType, contents))
+        val ret = for {
+          jsonNode <- request.body.asJson
+          senderId <- (jsonNode \ "sender").asOpt[Long]
+          chatType <- (jsonNode \ "chatType").asOpt[String]
+          msgType <- (jsonNode \ "msgType").asOpt[Int]
+          contents <- (jsonNode \ "contents").asOpt[String]
+          target <- {
+            // receiverId和conversation，二者至少居其一
+            val receiverId = (jsonNode \ "receiver").asOpt[Long]
+            val cid = (jsonNode \ "conversation").asOpt[String] map (new ObjectId(_))
+            if (cid nonEmpty)
+              cid
+            else
+              receiverId
+          }
+        } yield {
+          target match {
+            case receiverId: Long =>
+              sendMessageBase(MessageInfo(senderId, chatType, Some(receiverId), None, msgType, Some(contents)))
+            case cid: ObjectId =>
+              sendMessageBase(MessageInfo(senderId, chatType, None, Some(cid), msgType, Some(contents)))
+            case _ =>
+              Future(Results.UnprocessableEntity)
+          }
+        }
+        ret getOrElse Future(Results.UnprocessableEntity)
       }
   }
 
