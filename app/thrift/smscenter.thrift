@@ -1,4 +1,4 @@
-namespace java com.lvxingpai.smscenter.java
+namespace java com.lvxingpai.smscenter
 #@namespace scala com.lvxingpai.smscenter
 
 exception SmsCenterException {
