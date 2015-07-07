@@ -1,13 +1,18 @@
 package controllers
 
 import core.User
+import core.aspectj.WithAccessLog
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import play.api.libs.json.{ JsNumber, JsObject, JsString }
 import play.api.mvc.{ Action, Controller }
+
+import scala.concurrent.Future
 
 /**
  * Created by zephyre on 4/20/15.
  */
 object UserCtrl extends Controller {
+  @WithAccessLog
   def login = Action.async {
     request =>
       {
@@ -18,6 +23,7 @@ object UserCtrl extends Controller {
       }
   }
 
+  @WithAccessLog
   def logout = Action.async {
     request =>
       {
@@ -26,4 +32,14 @@ object UserCtrl extends Controller {
         User.logout(userId).map(v => Helpers.JsonResponse())
       }
   }
+
+  @WithAccessLog
+  def version() = Action.async(request => {
+    val result = JsObject(Seq(
+      "message" -> JsString("HELLO"),
+      "timestamp" -> JsNumber(System.currentTimeMillis)
+    ))
+
+    Future(Helpers.JsonResponse(data = Some(result)))
+  })
 }

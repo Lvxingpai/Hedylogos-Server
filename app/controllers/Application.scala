@@ -1,14 +1,18 @@
 package controllers
 
+import core.aspectj.WithAccessLog
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.mvc._
 
+import scala.concurrent.Future
+
 object Application extends Controller {
 
-  def index = Action {
-    Ok("")
-  }
+  @WithAccessLog
+  def index = Action.async(request => {
+    Future(Ok(""))
+  })
 
   def computation(count: Int): Int = {
     for (i <- 0 until count) {
