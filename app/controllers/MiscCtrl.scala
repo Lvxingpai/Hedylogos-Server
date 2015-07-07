@@ -143,7 +143,7 @@ object MiscCtrl extends Controller {
             "duration" -> JsNumber(duration))
         case MessageType.LOCATION =>
           Seq(
-            "snapshot" -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle("thumb"), expire)),
+            "snapshot" -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle("location"), expire)),
             "lat" -> JsNumber(postMap("lat").toDouble),
             "lng" -> JsNumber(postMap("lng").toDouble),
             "address" -> JsString(postMap("address"))
