@@ -35,7 +35,7 @@ public class Conversation extends AbstractEntity {
     public static final String FD_FINGERPRINT = "fingerprint";
 
     public static Conversation create(Long userA, Long userB) {
-        assert userA > 0 && userB > 0 && !Objects.equals(userA, userB) :
+        assert userA >= 0 && userB > 0 && !Objects.equals(userA, userB) :
                 String.format("Invalid users: %d, %d", userA, userB);
 
         Conversation c = new Conversation();
