@@ -1,7 +1,7 @@
 package models
 
 import org.bson.types.ObjectId
-import org.mongodb.morphia.annotations.{Entity, Indexed}
+import org.mongodb.morphia.annotations.{ Entity, Indexed }
 
 import scala.beans.BeanProperty
 
@@ -9,10 +9,10 @@ import scala.beans.BeanProperty
  * Created by zephyre on 6/26/15.
  */
 @Entity
-class Message extends AbstractEntity{
-//  @BeanProperty
-//  @Id
-//  var id: ObjectId = new ObjectId()
+class Message extends AbstractEntity {
+  //  @BeanProperty
+  //  @Id
+  //  var id: ObjectId = new ObjectId()
 
   @BeanProperty
   @Indexed()

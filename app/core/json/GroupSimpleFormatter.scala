@@ -1,7 +1,7 @@
 package core.json
 
-import models.{AbstractEntity, Message}
-import play.api.libs.json.{JsNumber, JsObject, JsString, JsValue}
+import models.{ AbstractEntity, Message }
+import play.api.libs.json.{ JsNumber, JsObject, JsString, JsValue }
 
 /**
  * Created by zephyre on 4/23/15.

@@ -1,8 +1,8 @@
 package core.finagle
 
 import com.lvxingpai.yunkai.Gender
-import com.lvxingpai.yunkai.{UserInfo => YunkaiUserInfo, ChatGroup => YunkaiChatGroup}
-import models.{UserInfo, ChatGroup}
+import com.lvxingpai.yunkai.{ UserInfo => YunkaiUserInfo, ChatGroup => YunkaiChatGroup }
+import models.{ UserInfo, ChatGroup }
 import org.bson.types.ObjectId
 
 /**

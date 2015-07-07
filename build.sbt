@@ -4,7 +4,7 @@ organization := "com.lvxingpai"
 
 version := "1.0"
 
-lazy val root = (project in file(".")).enablePlugins(PlayScala,ScroogeSBT)
+lazy val root = (project in file(".")).enablePlugins(PlayScala, ScroogeSBT)
 
 scalaVersion := "2.10.4"
 
@@ -44,3 +44,5 @@ publishTo := {
   else
     Some("publishReleases" at nexus + "releases")
 }
+
+scalariformSettings

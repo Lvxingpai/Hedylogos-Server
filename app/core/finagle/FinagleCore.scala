@@ -1,12 +1,11 @@
 package core.finagle
 
-import com.lvxingpai.yunkai.{ChatGroup => YunkaiChatGroup, ChatGroupProp, NotFoundException, UserInfo => YunkaiUserInfo}
-import com.twitter.util.{Future => TwitterFuture}
+import com.lvxingpai.yunkai.{ ChatGroup => YunkaiChatGroup, ChatGroupProp, NotFoundException, UserInfo => YunkaiUserInfo }
+import com.twitter.util.{ Future => TwitterFuture }
 import misc.FinagleFactory
 import models.ChatGroup
 import scala.concurrent.Future
 import core.finagle.TwitterConverter._
-
 
 /**
  * Created by topy on 2015/7/6.

@@ -1,11 +1,11 @@
 package core.finagle
 
-import com.lvxingpai.appconfig.{EtcdConfBuilder, EtcdServiceBuilder}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.lvxingpai.appconfig.{ EtcdConfBuilder, EtcdServiceBuilder }
+import com.typesafe.config.{ Config, ConfigFactory }
 import play.api.Configuration
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
 
 /**

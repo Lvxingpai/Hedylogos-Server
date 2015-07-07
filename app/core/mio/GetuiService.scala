@@ -1,17 +1,16 @@
 package core.mio
 
-import com.gexin.rp.sdk.base.impl.{ListMessage, SingleMessage, Target}
+import com.gexin.rp.sdk.base.impl.{ ListMessage, SingleMessage, Target }
 import com.gexin.rp.sdk.http.IGtPush
 import com.gexin.rp.sdk.template.TransmissionTemplate
 import core.json.MessageFormatter
-import core.{GlobalConfig, User}
+import core.{ GlobalConfig, User }
 import models.Message
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
-
 
 /**
  * 个推推送服务
@@ -82,8 +81,8 @@ object GetuiService extends MessageDeliever {
     val regIdList = for {
       values <- Future.sequence(targets.map(userId2regId)) // Future[Seq[Option[String]]]
     } yield for {
-        opt <- values if opt.nonEmpty
-      } yield opt.get
+      opt <- values if opt.nonEmpty
+    } yield opt.get
 
     regIdList.map(targets => {
       sendTransmission(message, targets)

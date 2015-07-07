@@ -1,8 +1,8 @@
 package core
 
 import com.mongodb.DuplicateKeyException
-import core.connector.{HedyRedis, MorphiaFactory}
-import core.mio.{GetuiService, MongoStorage, RedisMessaging}
+import core.connector.{ HedyRedis, MorphiaFactory }
+import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
 import models.Message.MessageType
 import models._
 import org.bson.types.ObjectId
@@ -156,7 +156,6 @@ object Chat {
     }
     result
   }
-
 
   def sendMessage(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] = {
     val futureMsg = buildMessage(msgType, contents, cid, receiver, sender, chatType)

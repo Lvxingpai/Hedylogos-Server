@@ -1,6 +1,6 @@
 package core.qiniu
 
-import com.qiniu.util.{Auth, StringMap}
+import com.qiniu.util.{ Auth, StringMap }
 import core.GlobalConfig.playConf
 
 /**

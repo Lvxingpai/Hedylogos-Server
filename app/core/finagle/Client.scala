@@ -23,18 +23,17 @@ object Client extends App {
       .codec(ThriftClientFramedCodec())
       .build()
 
-//    val client = new Userservice.FinagledClient(service, new TBinaryProtocol.Factory())
-//
-//    val loginName = "13699851562"
-//    val passwd = "000999"
-//
-//    //val user = Await.result(client.login(loginName, passwd))
-//    val user = Await.result(client.getUserById(100000))
-//    println(user)
-//
-//    client.service.close()
+    //    val client = new Userservice.FinagledClient(service, new TBinaryProtocol.Factory())
+    //
+    //    val loginName = "13699851562"
+    //    val passwd = "000999"
+    //
+    //    //val user = Await.result(client.login(loginName, passwd))
+    //    val user = Await.result(client.getUserById(100000))
+    //    println(user)
+    //
+    //    client.service.close()
   }
-
 
   main(args)
 

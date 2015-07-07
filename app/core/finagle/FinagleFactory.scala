@@ -2,8 +2,8 @@ package misc
 
 import java.net.InetSocketAddress
 
-import com.lvxingpai.smscenter.SmsCenter.{FinagledClient => SmsClient}
-import com.lvxingpai.yunkai.Userservice.{FinagledClient => YunkaiClient}
+import com.lvxingpai.smscenter.SmsCenter.{ FinagledClient => SmsClient }
+import com.lvxingpai.yunkai.Userservice.{ FinagledClient => YunkaiClient }
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.thrift.ThriftClientFramedCodec
 import core.finagle.CoreConfig

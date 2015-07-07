@@ -2,15 +2,14 @@ package core
 
 import controllers.GroupCtrl
 import core.connector.MorphiaFactory
-import core.mio.{GetuiService, MongoStorage, RedisMessaging}
-import models.{Conversation, Message, UserInfo}
+import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
+import models.{ Conversation, Message, UserInfo }
 import org.bson.types.ObjectId
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json.{JsNumber, JsObject, JsString, JsValue}
+import play.api.libs.json.{ JsNumber, JsObject, JsString, JsValue }
 
 import scala.concurrent.Future
-
 
 /**
  * CMD相关的操作
@@ -111,8 +110,8 @@ object CmdInfo {
       "groupName" -> JsString(group.getName),
       "groupAvatar" -> JsString(group.getAvatar)
     )
-      //)
-      //)
+    //)
+    //)
     )
   }
 }
