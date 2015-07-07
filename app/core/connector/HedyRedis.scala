@@ -5,7 +5,6 @@ import core.GlobalConfig
 
 import scala.collection.JavaConversions._
 
-
 /**
  * Created by zephyre on 4/21/15.
  */

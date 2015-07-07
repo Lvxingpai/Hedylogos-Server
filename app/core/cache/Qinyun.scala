@@ -5,6 +5,4 @@ package core.cache
  */
 class Qinyun {
 
-
-
 }

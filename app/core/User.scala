@@ -6,7 +6,6 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
-
 /**
  * 用户相关的操作
  *

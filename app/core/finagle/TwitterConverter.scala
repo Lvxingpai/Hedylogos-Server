@@ -1,8 +1,8 @@
 package core.finagle
 
-import com.twitter.{util => twitter}
-import scala.concurrent.{ExecutionContext, Promise, Future}
-import scala.util.{Failure, Success, Try}
+import com.twitter.{ util => twitter }
+import scala.concurrent.{ ExecutionContext, Promise, Future }
+import scala.util.{ Failure, Success, Try }
 import language.implicitConversions
 
 object TwitterConverter {

@@ -22,3 +22,8 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-mocha" % "1.0.0")
 addSbtPlugin("com.twitter" % "scrooge-sbt-plugin" % "3.18.1")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-scalariform" % "1.3.0")
+
+addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.7.0")
+
+// AspectJ
+addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.2")

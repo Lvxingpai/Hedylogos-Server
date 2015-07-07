@@ -1,13 +1,12 @@
 package core.json
 
-import models.{AbstractEntity, Message}
-import play.api.libs.json.{JsNumber, JsObject, JsString, JsValue}
+import models.{ AbstractEntity, Message }
+import play.api.libs.json.{ JsNumber, JsObject, JsString, JsValue }
 
 /**
  * Created by zephyre on 4/23/15.
  */
-object
-MessageFormatter extends JsonFormatter {
+object MessageFormatter extends JsonFormatter {
   override def format(item: AbstractEntity): JsValue = {
     val msg = item.asInstanceOf[Message]
     val stContent = Seq(

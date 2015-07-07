@@ -1,4 +1,4 @@
-import play.api.{Application, GlobalSettings, Logger}
+import play.api.{ Application, GlobalSettings, Logger }
 
 object Global extends GlobalSettings {
 

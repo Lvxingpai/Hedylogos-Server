@@ -2,14 +2,13 @@ package core
 
 import controllers.GroupCtrl
 import core.connector.MorphiaFactory
-import models.{Group, Sequence, UserInfo}
-import org.mongodb.morphia.query.{Query, UpdateOperations}
+import models.{ Group, Sequence, UserInfo }
+import org.mongodb.morphia.query.{ Query, UpdateOperations }
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
-
 
 /**
  * Created by zephyre on 4/20/15.
@@ -42,7 +41,6 @@ object Group {
       c
     }
   }
-
 
   /**
    * 取得群组ID
@@ -182,6 +180,5 @@ object Group {
     //    groupDs.update(groupDs.createQuery(classOf[Group]).field(models.Group.FD_GROUPID).equal(gId), ops)
     //    }
   }
-
 
 }

@@ -1,8 +1,8 @@
 package core.connector
 
-import com.mongodb.{MongoClient, MongoClientOptions, MongoCredential, ServerAddress}
+import com.mongodb.{ MongoClient, MongoClientOptions, MongoCredential, ServerAddress }
 import core.GlobalConfig
-import models.{Conversation, UserInfo}
+import models.{ Conversation, UserInfo }
 import org.mongodb.morphia.Morphia
 
 import scala.collection.JavaConversions._
