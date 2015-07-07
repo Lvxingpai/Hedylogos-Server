@@ -39,7 +39,7 @@ object Chat {
    * @return
    */
   def singleConversation(userA: Long, userB: Long, create: Boolean = true): Future[Option[Conversation]] = {
-    assert(userA > 0 && userB > 0 && userA != userB, s"Invalid users: $userA, $userB")
+    assert(userA >= 0 && userB > 0 && userA != userB, s"Invalid users: $userA, $userB")
 
     Future {
       val c: Conversation = Conversation.create(userA, userB)
