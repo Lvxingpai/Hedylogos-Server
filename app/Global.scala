@@ -1,4 +1,5 @@
 import play.api.{ Application, GlobalSettings, Logger }
+import play.api.mvc.RequestHeader
 
 object Global extends GlobalSettings {
 
@@ -8,5 +9,8 @@ object Global extends GlobalSettings {
 
   override def onStop(app: Application) {
     Logger.info("Application shutdown...")
+  }
+
+  override def onRequestCompletion(request: RequestHeader): Unit = {
   }
 }

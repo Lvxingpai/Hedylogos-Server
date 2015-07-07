@@ -1,3 +1,6 @@
+import com.typesafe.sbt.SbtAspectj.Aspectj
+import com.typesafe.sbt.SbtAspectj.AspectjKeys._
+
 name := """Hedylogos"""
 
 organization := "com.lvxingpai"
@@ -9,6 +12,8 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala, ScroogeSBT)
 scalaVersion := "2.10.4"
 
 val finagleVersion = "6.25.0"
+
+val springVersion = "3.2.2.RELEASE"
 
 libraryDependencies ++= Seq(
   "org.mongodb" % "mongo-java-driver" % "3.0.0",
@@ -31,6 +36,11 @@ libraryDependencies ++= Seq(
   "com.twitter" %% "finagle-core" % finagleVersion,
   "com.twitter" %% "finagle-thrift" % finagleVersion,
   "com.twitter" %% "finagle-thriftmux" % finagleVersion,
+  "org.springframework" % "spring-aspects" % springVersion,
+  "org.springframework" % "spring-aop" % springVersion,
+  "org.springframework" % "spring-tx" % springVersion,
+  "javax.persistence" % "persistence-api" % "1.0.2",
+  "ch.qos.logback" % "logback-classic" % "1.1.3",
   jdbc,
   anorm,
   cache,
@@ -46,3 +56,36 @@ publishTo := {
 }
 
 scalariformSettings
+
+// AspectJ settings start
+
+aspectjSettings
+
+AspectjKeys.showWeaveInfo in Aspectj := false
+
+
+inputs in Aspectj <+= compiledClasses
+
+binaries in Aspectj <++= update map { report =>
+  report.matching(
+    moduleFilter(organization = "org.springframework", name = "spring-aspects")
+  )
+}
+
+binaries in Aspectj <++= update map { report =>
+  report.matching(
+    moduleFilter(organization = "org.springframework", name = "spring-aop")
+  )
+}
+
+binaries in Aspectj <++= update map { report =>
+  report.matching(
+    moduleFilter(organization = "org.springframework", name = "spring-tx")
+  )
+}
+
+products in Compile <<= products in Aspectj
+
+products in Runtime <<= products in Compile
+
+// AspectJ settings end

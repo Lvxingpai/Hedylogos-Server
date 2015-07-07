@@ -1,6 +1,7 @@
 package controllers
 
 import core.Chat
+import core.aspectj.WithAccessLog
 import core.finagle.FinagleCore
 import core.json.MessageFormatter
 import models._
@@ -49,6 +50,7 @@ object ChatCtrl extends Controller {
     })
   }
 
+  @WithAccessLog
   def sendMessage() = Action.async {
     request =>
       {
@@ -81,6 +83,7 @@ object ChatCtrl extends Controller {
       }
   }
 
+  @WithAccessLog
   def acknowledgeAndFetchMessages(user: Long) = Action.async {
     request =>
       {

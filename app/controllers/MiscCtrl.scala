@@ -4,6 +4,7 @@ import com.typesafe.config.Config
 import controllers.ChatCtrl.MessageInfo
 import core.GlobalConfig
 import core.GlobalConfig.playConf
+import core.aspectj.WithAccessLog
 import core.qiniu.QiniuClient
 import models.Message.MessageType
 import org.bson.types.ObjectId
@@ -17,6 +18,7 @@ import scala.collection.JavaConversions._
  */
 object MiscCtrl extends Controller {
 
+  @WithAccessLog
   def uploadToken = Action {
     request =>
       {
@@ -93,6 +95,7 @@ object MiscCtrl extends Controller {
    * 处理七牛的回调。1-个人；2-群组
    * @return
    */
+  @WithAccessLog
   def qiniuCallback() = Action.async {
     request =>
       {
