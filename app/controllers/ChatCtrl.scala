@@ -5,7 +5,6 @@ import core.aspectj.WithAccessLog
 import core.finagle.FinagleCore
 import core.json.MessageFormatter
 import models._
-import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
@@ -18,25 +17,23 @@ import scala.language.postfixOps
  */
 object ChatCtrl extends Controller {
 
-  case class MessageInfo(senderId: Long, chatType: String, receiverId: Option[Long], cid: Option[ObjectId], msgType: Int,
-    contents: Option[String])
+  case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
 
   val SEND_TYPE_SINGLE = "single"
   val SEND_TYPE_GROUP = "group"
 
   def sendMessageBase(msgInfo: MessageInfo): Future[Result] = {
-    val cid = msgInfo.cid
     val chatType = msgInfo.chatType
 
     val futureMsg: Future[Message] =
-      if (cid.nonEmpty)
-        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
-      else if (chatType.equals(SEND_TYPE_SINGLE))
-        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
+      //      if (cid.nonEmpty)
+      //        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
+      if (chatType.equals(SEND_TYPE_SINGLE))
+        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId, msgInfo.senderId, msgInfo.chatType)
       else if (chatType.equals(SEND_TYPE_GROUP))
         for {
-          group <- FinagleCore.getGroupObjId(msgInfo.receiverId.get)
-          chat <- Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), group.getId, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
+          group <- FinagleCore.getGroupObjId(msgInfo.receiverId)
+          chat <- Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), group.getId, msgInfo.receiverId, msgInfo.senderId, msgInfo.chatType)
         } yield chat
       else null
 
@@ -57,28 +54,11 @@ object ChatCtrl extends Controller {
         val ret = for {
           jsonNode <- request.body.asJson
           senderId <- (jsonNode \ "sender").asOpt[Long]
+          receiverId <- (jsonNode \ "receiver").asOpt[Long]
           chatType <- (jsonNode \ "chatType").asOpt[String]
           msgType <- (jsonNode \ "msgType").asOpt[Int]
           contents <- (jsonNode \ "contents").asOpt[String]
-          target <- {
-            // receiverId和conversation，二者至少居其一
-            val receiverId = (jsonNode \ "receiver").asOpt[Long]
-            val cid = (jsonNode \ "conversation").asOpt[String] map (new ObjectId(_))
-            if (cid nonEmpty)
-              cid
-            else
-              receiverId
-          }
-        } yield {
-          target match {
-            case receiverId: Long =>
-              sendMessageBase(MessageInfo(senderId, chatType, Some(receiverId), None, msgType, Some(contents)))
-            case cid: ObjectId =>
-              sendMessageBase(MessageInfo(senderId, chatType, None, Some(cid), msgType, Some(contents)))
-            case _ =>
-              Future(Results.UnprocessableEntity)
-          }
-        }
+        } yield sendMessageBase(MessageInfo(senderId, chatType, receiverId, msgType, Some(contents)))
         ret getOrElse Future(Results.UnprocessableEntity)
       }
   }

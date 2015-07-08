@@ -153,9 +153,9 @@ object MiscCtrl extends Controller {
               "address" -> JsString(postMap("address"))
             )
           case _ => throw new IllegalArgumentException
-        }).toString
+        }).toString()
 
-        ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId, cid, msgType.id, Some(contents)))
+        ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId.get, msgType.id, Some(contents)))
       }
   }
 
@@ -209,7 +209,7 @@ object MiscCtrl extends Controller {
         ) ++ styleSet.toSeq).toString()
       case _ => throw new IllegalArgumentException
     }
-    ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId, cid, msgType, Some(contents)))
+    ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId.get, msgType, Some(contents)))
   }
 
 }
