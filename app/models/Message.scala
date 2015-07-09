@@ -9,10 +9,7 @@ import scala.beans.BeanProperty
  * Created by zephyre on 6/26/15.
  */
 @Entity
-class Message extends AbstractEntity {
-  //  @BeanProperty
-  //  @Id
-  //  var id: ObjectId = new ObjectId()
+class Message extends AbstractEntiry {
 
   @BeanProperty
   @Indexed()
