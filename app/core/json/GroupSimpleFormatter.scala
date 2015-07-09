@@ -1,6 +1,7 @@
 package core.json
 
-import models.{ AbstractEntity, Message }
+import com.lvxingpai.yunkai.ChatGroup
+import models.{ AbstractEntiry, Message }
 import play.api.libs.json.{ JsNumber, JsObject, JsString, JsValue }
 
 /**
@@ -10,14 +11,14 @@ object GroupSimpleFormatter extends JsonFormatter {
 
   val GROUPSIMPLEFIELDS = Seq("id", "groupId", "name", "avatar")
 
-  override def format(item: AbstractEntity): JsValue = {
-    val group = item.asInstanceOf[models.Group]
+  override def format(item: AbstractEntiry): JsValue = {
+    val group = item.asInstanceOf[ChatGroup]
     JsObject(Seq(
-      "id" -> JsString(group.getId.toString),
-      "conversation" -> JsString(group.getId.toString),
-      "groupId" -> JsNumber(group.getGroupId.toLong),
-      "name" -> JsString(group.getName),
-      "avatar" -> JsString(group.getAvatar)
+      "id" -> JsString(group.id.toString),
+      "conversation" -> JsString(group.id.toString),
+      "groupId" -> JsNumber(group.chatGroupId.toLong),
+      "name" -> JsString(group.name),
+      "avatar" -> JsString(group.avatar.getOrElse(""))
 
     ))
   }

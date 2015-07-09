@@ -3,7 +3,7 @@ package core.utils.formatter;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import models.AbstractEntity;
+import models.AbstractEntiry;
 import org.bson.types.ObjectId;
 
 import java.io.IOException;
@@ -16,7 +16,7 @@ import java.util.Date;
  * <p>
  * Created by zephyre on 1/15/15.
  */
-public abstract class AbstractSerializer<T extends AbstractEntity> extends JsonSerializer<T> {
+public abstract class AbstractSerializer<T extends AbstractEntiry> extends JsonSerializer<T> {
     protected String getString(String val) {
         return (val != null && !val.isEmpty()) ? val : "";
     }
@@ -56,11 +56,11 @@ public abstract class AbstractSerializer<T extends AbstractEntity> extends JsonS
      */
     protected void writeObjectId(T item, JsonGenerator jgen, SerializerProvider serializerProvider)
             throws IOException {
-        if (item instanceof AbstractEntity) {
+        if (item instanceof AbstractEntiry) {
             JsonSerializer<Object> ret = serializerProvider.findValueSerializer(ObjectId.class, null);
             if (ret != null) {
                 jgen.writeFieldName("id");
-                ret.serialize(((AbstractEntity) item).getId(), jgen, serializerProvider);
+                ret.serialize(((AbstractEntiry) item).getId(), jgen, serializerProvider);
             }
         }
     }

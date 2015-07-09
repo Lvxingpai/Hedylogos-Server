@@ -1,9 +1,9 @@
 package core.finagle
 
-import com.lvxingpai.yunkai.{ ChatGroup => YunkaiChatGroup, ChatGroupProp, NotFoundException, UserInfo => YunkaiUserInfo }
+import com.lvxingpai.yunkai.{ ChatGroup, ChatGroupProp, NotFoundException }
 import com.twitter.util.{ Future => TwitterFuture }
+//import core.finagle.FinagleConvert
 import misc.FinagleFactory
-import models.ChatGroup
 import scala.concurrent.Future
 import core.finagle.TwitterConverter._
 
@@ -12,18 +12,15 @@ import core.finagle.TwitterConverter._
  */
 object FinagleCore {
 
-  implicit def groupInfoYunkai2Model(groupInfo: YunkaiChatGroup): ChatGroup = FinagleConvert.convertK2ChatGroup(groupInfo)
-
   val basicChatGroupFields = Seq(ChatGroupProp.ChatGroupId, ChatGroupProp.Name, ChatGroupProp.Visible, ChatGroupProp.Avatar, ChatGroupProp.GroupDesc, ChatGroupProp.Id)
-  val basicObjIdFields = Seq(ChatGroupProp.Id)
+  val responseFields = Seq(ChatGroupProp.Id, ChatGroupProp.ChatGroupId, ChatGroupProp.Name, ChatGroupProp.Participants)
 
-  def getGroupObjId(gid: Long): Future[ChatGroup] = {
-    FinagleFactory.client.getChatGroup(gid, Some(basicObjIdFields)) map (chatGroup => {
-      groupInfoYunkai2Model(chatGroup)
-    }) rescue {
+  def getChatGroup(chatGroupId: Long): Future[ChatGroup] = {
+    // rescue 用于捕获future异常，因为try catch捕获不了future的异常
+    FinagleFactory.client.getChatGroup(chatGroupId, Some(responseFields)) rescue {
       case _: NotFoundException =>
         TwitterFuture {
-          new ChatGroup()
+          throw NotFoundException()
         }
     }
   }

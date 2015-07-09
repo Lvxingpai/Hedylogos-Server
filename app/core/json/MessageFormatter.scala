@@ -1,13 +1,13 @@
 package core.json
 
-import models.{ AbstractEntity, Message }
+import models.{ AbstractEntiry, Message }
 import play.api.libs.json.{ JsNumber, JsObject, JsString, JsValue }
 
 /**
  * Created by zephyre on 4/23/15.
  */
 object MessageFormatter extends JsonFormatter {
-  override def format(item: AbstractEntity): JsValue = {
+  override def format(item: AbstractEntiry): JsValue = {
     val msg = item.asInstanceOf[Message]
     val stContent = Seq(
       "id" -> JsString(msg.getId.toString),
@@ -28,7 +28,7 @@ object MessageFormatter extends JsonFormatter {
     )
   }
 
-  def formatAddRouteKey(item: AbstractEntity, routeKey: String): JsValue = {
+  def formatAddRouteKey(item: AbstractEntiry, routeKey: String): JsValue = {
     val msg = item.asInstanceOf[Message]
     val msgStContent = Seq(
       "id" -> JsString(msg.getId.toString),

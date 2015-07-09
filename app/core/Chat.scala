@@ -1,7 +1,9 @@
 package core
 
+import com.lvxingpai.yunkai.ChatGroup
 import com.mongodb.DuplicateKeyException
 import core.connector.{ HedyRedis, MorphiaFactory }
+import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
 import models.Message.MessageType
 import models._
@@ -23,7 +25,7 @@ object Chat {
   def conversation(cid: ObjectId): Future[Option[Conversation]] = {
     Future {
       val result = ds.find(classOf[Conversation], "id", cid).get()
-      if (result != null) Some(result) else None
+      Option(result)
     }
   }
 
@@ -42,15 +44,15 @@ object Chat {
     assert(userA >= 0 && userB > 0 && userA != userB, s"Invalid users: $userA, $userB")
 
     Future {
-      val c: Conversation = Conversation.create(userA, userB)
+      val c: Conversation = Conversation(userA, userB)
 
       try {
         ds.save[Conversation](c)
         Some(c)
       } catch {
         case e: DuplicateKeyException =>
-          val result = ds.find(classOf[Conversation], Conversation.FD_FINGERPRINT, c.getFingerprint).get
-          if (result != null) Some(result) else None
+          val result = ds.find(classOf[Conversation], Conversation.fdFingerprint, c.getFingerprint).get
+          Option(result)
       }
     }
   }
@@ -58,38 +60,31 @@ object Chat {
   /**
    * 创建群组的会话
    *
-   * @param group
+   * @param chatGroup
    * @param create
    * @return
    */
-  def groupConversation(group: models.Group, create: Boolean = true): Future[Conversation] = {
+  def chatGroupConversation(chatGroup: ChatGroup, create: Boolean = true): Future[Conversation] = {
     Future {
-      val c: Conversation = new Conversation
-      c.setId(group.getId)
-      c.setFingerprint(group.getGroupId.toString)
-      c.setParticipants(group.getParticipants)
-      c.setMsgCounter(0L)
-      c.setCreateTime(System.currentTimeMillis())
-      c.setUpdateTime(System.currentTimeMillis())
+      val conversation: Conversation = Conversation(chatGroup.id, chatGroup.chatGroupId)
       try {
-        ds.save[Conversation](c)
-        c
+        ds.save[Conversation](conversation)
+        conversation
       } catch {
         case e: DuplicateKeyException =>
-          val result = ds.find(classOf[Conversation], Conversation.FD_FINGERPRINT, c.getFingerprint).get
+          val result = ds.find(classOf[Conversation], Conversation.fdFingerprint, conversation.getFingerprint).get
           result
       }
     }
   }
-
-  def opGroupConversation(group: models.Group, participants: Seq[Long], isAdd: Boolean = true): Future[Unit] = {
+  def opGroupConversation(chatGroup: ChatGroup, participants: Seq[Long], isAdd: Boolean = true): Future[Unit] = {
     Future {
       val ops = ds.createUpdateOperations(classOf[Conversation])
       if (isAdd)
-        ops.addAll(models.Conversation.FD_PARTICIPANTS, participants, false)
+        ops.addAll(models.Conversation.fdFingerprint, participants, false)
       else
-        ops.removeAll(models.Conversation.FD_PARTICIPANTS, participants)
-      ds.updateFirst(ds.createQuery(classOf[Conversation]).field("id").equal(group.getId), ops)
+        ops.removeAll(models.Conversation.fdFingerprint, participants)
+      ds.updateFirst(ds.createQuery(classOf[Conversation]).field("id").equal(chatGroup.id), ops)
     }
   }
 
@@ -118,10 +113,10 @@ object Chat {
     }
   }
 
-  def groupConversation(fingerprint: String): Future[Option[Conversation]] = {
+  def chatGroupConversation(fingerprint: String): Future[Option[Conversation]] = {
     Future {
-      val result = ds.find(classOf[Conversation], Conversation.FD_FINGERPRINT, fingerprint).get
-      if (result != null) Some(result) else None
+      val result = ds.find(classOf[Conversation], Conversation.fdFingerprint, fingerprint).get
+      Option(result)
     }
   }
 
@@ -157,11 +152,16 @@ object Chat {
     result
   }
 
+  // 给群组发消息
   def sendMessage(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] = {
     val futureMsg = buildMessage(msgType, contents, cid, receiver, sender, chatType)
     val futureConv = conversation(cid)
-    val futureTargets = futureConv.map(v => {
-      Set(v.get.getParticipants.filter(_ != sender).map(scala.Long.unbox(_)): _*).toSeq
+    val participants = FinagleCore.getChatGroup(receiver) map (item => item.participants)
+
+    val futureTargets = futureConv flatMap (v => {
+      for {
+        members <- participants
+      } yield Set(members.filter(_ != sender): _*).toSeq
     })
 
     val mongoResult = for {

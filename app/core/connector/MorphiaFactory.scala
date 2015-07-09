@@ -1,9 +1,11 @@
 package core.connector
 
+import com.lvxingpai.yunkai.{ ChatGroup, UserInfo }
 import com.mongodb.{ MongoClient, MongoClientOptions, MongoCredential, ServerAddress }
 import core.GlobalConfig
-import models.{ Conversation, UserInfo }
-import org.mongodb.morphia.Morphia
+import core.finagle.CoreConfig
+import models.{ Conversation }
+import org.mongodb.morphia.{ ValidationExtension, Morphia }
 
 import scala.collection.JavaConversions._
 
@@ -14,8 +16,7 @@ object MorphiaFactory {
 
   lazy val morphia = {
     val m = new Morphia()
-    m.map(classOf[Conversation], classOf[models.Group], classOf[models.Message], classOf[models.Sequence],
-      classOf[UserInfo])
+    m.map(classOf[Conversation], classOf[models.Message])
     m
   }
 

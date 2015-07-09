@@ -1,6 +1,7 @@
 package core.json
 
-import models.{ AbstractEntity, Message }
+import com.lvxingpai.yunkai.UserInfo
+import models.{ AbstractEntiry, Message }
 import play.api.libs.json.{ JsNumber, JsObject, JsString, JsValue }
 
 /**
@@ -10,12 +11,12 @@ object UserInfoSimpleFormatter extends JsonFormatter {
 
   val USERINFOSIMPLEFIELDS = Seq("userId", "nickName", "avatar")
 
-  override def format(item: AbstractEntity): JsValue = {
-    val user = item.asInstanceOf[models.UserInfo]
+  override def format(item: AbstractEntiry): JsValue = {
+    val user = item.asInstanceOf[UserInfo]
     JsObject(Seq(
-      "userId" -> JsNumber(user.getUserId.toLong),
-      "nickName" -> JsString(user.getNickName),
-      "avatar" -> JsString(user.getAvatar)
+      "userId" -> JsNumber(user.userId),
+      "nickName" -> JsString(user.nickName),
+      "avatar" -> JsString(user.avatar.getOrElse(""))
     ))
   }
 }

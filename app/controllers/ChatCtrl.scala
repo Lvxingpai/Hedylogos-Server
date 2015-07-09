@@ -27,20 +27,30 @@ object ChatCtrl extends Controller {
   def sendMessageBase(msgInfo: MessageInfo): Future[Result] = {
     val cid = msgInfo.cid
     val chatType = msgInfo.chatType
+    val futureConversation = Chat.chatGroupConversation(msgInfo.receiverId.toString)
+    val empty = futureConversation map (item => if (item nonEmpty) true else false)
 
-    val futureMsg: Future[Message] =
-      if (cid.nonEmpty)
-        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), cid.get, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
-      else if (chatType.equals(SEND_TYPE_SINGLE))
-        Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
-      else if (chatType.equals(SEND_TYPE_GROUP))
-        for {
-          group <- FinagleCore.getGroupObjId(msgInfo.receiverId.get)
-          chat <- Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), group.getId, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
-        } yield chat
-      else null
+    val futureMsg: Future[Message] = for {
+      opt <- futureConversation
+      conversation <- {
+        opt map (Future(_)) getOrElse {
+          for {
+            group <- FinagleCore.getChatGroup(msgInfo.receiverId.get)
+            // 创建一个conversation
+            con <- Chat.chatGroupConversation(group)
+          } yield con
+        }
+      }
+      message <- {
+        chatType match {
+          case SEND_TYPE_SINGLE => Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
+          case SEND_TYPE_GROUP => Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), conversation.id, msgInfo.receiverId.get, msgInfo.senderId, msgInfo.chatType)
+          case _ => throw new IllegalArgumentException("illegal conversation type")
+        }
+      }
+    } yield message
 
-    futureMsg.map(msg => {
+    futureMsg map (msg => {
       val result = JsObject(Seq(
         "conversation" -> JsString(msg.getConversation.toString),
         "msgId" -> JsNumber(msg.getMsgId),

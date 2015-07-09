@@ -1,9 +1,10 @@
 package core
 
-import controllers.GroupCtrl
+import com.lvxingpai.yunkai.{ UserInfo, ChatGroup }
+
 import core.connector.MorphiaFactory
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
-import models.{ Conversation, Message, UserInfo }
+import models.{ Conversation, Message }
 import org.bson.types.ObjectId
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -23,36 +24,36 @@ object Cmd {
   val GROUP_CMD_CONVERSATION_FINGER = "CMD"
   val GROUP_CMD_MESSAGE_TYPE = 100
 
-  def sendGroupCmdMessage(action: String, group: models.Group, sender: UserInfo, receiver: Seq[UserInfo]): Future[Seq[Message]] = {
+  def sendGroupCmdMessage(action: String, chatGroup: ChatGroup, sender: UserInfo, receiver: Seq[UserInfo]): Future[Seq[Message]] = {
     Logger.trace("int")
     for {
-      c <- cmdConversation(group, receiver)
-      msg <- sendGroupCmdMessage(action, GROUP_CMD_MESSAGE_TYPE, c.map(v => v.getId), group, sender, receiver)
+      c <- cmdConversation(chatGroup, receiver)
+      msg <- sendGroupCmdMessage(action, GROUP_CMD_MESSAGE_TYPE, c.map(v => v.getId), chatGroup, sender, receiver)
     } yield msg
   }
 
-  def sendGroupCmdMessage(action: String, msgType: Int, cidList: Seq[ObjectId], group: models.Group, sender: UserInfo, receiver: Seq[UserInfo]): Future[Seq[Message]] = {
+  def sendGroupCmdMessage(action: String, msgType: Int, cidList: Seq[ObjectId], chatGroup: ChatGroup, sender: UserInfo, receiver: Seq[UserInfo]): Future[Seq[Message]] = {
     Logger.trace("sendGroupCmdMessage")
-    val cmdContent = CmdInfo.createCmd(action, msgType, group, sender)
-    val futureMsg = Chat.buildMessage(msgType, cmdContent.toString(), cidList, 0, sender.getUserId, CMD_CHAT_TYPE)
-    val targets = receiver.map(_.getUserId)
+    val cmdContent = CmdInfo.createCmd(action, msgType, chatGroup, sender)
+    val futureMsg = Chat.buildMessage(msgType, cmdContent.toString(), cidList, 0, sender.userId, CMD_CHAT_TYPE)
+    val targets = receiver.map(_.userId)
 
     //    val futureConv = Chat.conversation(cidList)
     val mongoResult = for {
       msg <- futureMsg
-      result <- MongoStorage.sendMessageList(msg, targets map scala.Long.unbox)
+      result <- MongoStorage.sendMessageList(msg, targets)
     } yield result
 
     for {
       msg <- mongoResult
-      redisResult <- RedisMessaging.sendMessageList(msg, targets map scala.Long.unbox)
-      getuiResult <- GetuiService.sendMessage(redisResult(0), targets map scala.Long.unbox)
+      redisResult <- RedisMessaging.sendMessageList(msg, targets)
+      getuiResult <- GetuiService.sendMessage(redisResult(0), targets)
     } yield getuiResult
     mongoResult
 
   }
 
-  def cmdConversation(group: models.Group, receiver: Seq[UserInfo]): Future[Seq[Conversation]] = {
+  def cmdConversation(chatGroup: ChatGroup, receiver: Seq[UserInfo]): Future[Seq[Conversation]] = {
     Future {
       def receiver2ConList(receiver: Seq[UserInfo]): Seq[Conversation] = {
         for {
@@ -60,8 +61,8 @@ object Cmd {
         } yield {
           val c: Conversation = new Conversation
           c.setId(new ObjectId())
-          c.setFingerprint(GROUP_CMD_CONVERSATION_FINGER + "." + user.getUserId)
-          c.setParticipants(java.util.Arrays.asList(user.getUserId))
+          c.setFingerprint(GROUP_CMD_CONVERSATION_FINGER + "." + user.userId)
+          //          c.setParticipants(java.util.Arrays.asList(user.getUserId))
           c.setMsgCounter(0L)
           c.setCreateTime(System.currentTimeMillis())
           c.setUpdateTime(System.currentTimeMillis())
@@ -94,21 +95,21 @@ object CmdInfo {
   val GROUP_ACTION_REMOVE = "G_REMOVE"
   val GROUP_ACTION_DESTROY = "G_DESTROY"
 
-  def createCmd(action: String, mType: Int, group: models.Group, user: UserInfo): JsValue = {
-    val msgAction = action match {
-      case GroupCtrl.ACTION_ADDMEMBERS => DISCUSSION_ACTION_INVITE_ADD
-      case GroupCtrl.ACTION_DELMEMBERS => DISCUSSION_ACTION_REMOVE
-    }
+  def createCmd(action: String, mType: Int, chatGroup: ChatGroup, user: UserInfo): JsValue = {
+    //    val msgAction = action match {
+    //      case GroupCtrl.ACTION_ADDMEMBERS => DISCUSSION_ACTION_INVITE_ADD
+    //      case GroupCtrl.ACTION_DELMEMBERS => DISCUSSION_ACTION_REMOVE
+    //    }
     JsObject(Seq(
       // "messageType" -> JsNumber(mType),
       //  "contents" -> JsObject(Seq(
-      "action" -> JsString(msgAction),
-      "userId" -> JsNumber(user.getUserId.toLong),
-      "nickName" -> JsString(user.getNickName),
-      "avatar" -> JsString(user.getAvatar),
-      "groupId" -> JsNumber(group.getGroupId.toLong),
-      "groupName" -> JsString(group.getName),
-      "groupAvatar" -> JsString(group.getAvatar)
+      //      "action" -> JsString(msgAction),
+      "userId" -> JsNumber(user.userId.toLong),
+      "nickName" -> JsString(user.nickName),
+      "avatar" -> JsString(user.avatar.getOrElse("")),
+      "groupId" -> JsNumber(chatGroup.chatGroupId.toLong),
+      "groupName" -> JsString(chatGroup.name),
+      "groupAvatar" -> JsString(chatGroup.avatar.getOrElse(""))
     )
     //)
     //)

@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.PropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
-import models.AbstractEntity;
+import models.AbstractEntiry;
 import org.bson.types.ObjectId;
 
 import java.util.*;
@@ -15,7 +15,7 @@ import java.util.*;
 /**
  * Created by zephyre on 1/20/15.
  */
-public abstract class AbstractFormatter<T extends AbstractEntity> {
+public abstract class AbstractFormatter<T extends AbstractEntiry> {
 
     public String format(List<T> itemList) {
         try {
@@ -66,6 +66,8 @@ public abstract class AbstractFormatter<T extends AbstractEntity> {
 
         // 添加ObjectId的序列化
         registerSerializer(ObjectId.class, new ObjectIdSerializer());
+
+
 
         mapper.registerModule(module);
 
