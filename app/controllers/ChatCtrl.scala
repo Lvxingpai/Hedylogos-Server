@@ -2,9 +2,7 @@ package controllers
 
 import core.Chat
 import core.aspectj.WithAccessLog
-import core.finagle.FinagleCore
 import core.json.MessageFormatter
-import models._
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
@@ -22,32 +20,8 @@ object ChatCtrl extends Controller {
   val SEND_TYPE_SINGLE = "single"
   val SEND_TYPE_GROUP = "group"
 
-  def sendMessageBase(msgInfo: MessageInfo): Future[Result] = {
-    val chatType = msgInfo.chatType
-    val futureConversation = Chat.chatGroupConversation(msgInfo.receiverId.toString)
-    val empty = futureConversation map (item => if (item nonEmpty) true else false)
-
-    val futureMsg: Future[Message] = for {
-      opt <- futureConversation
-      conversation <- {
-        opt map (Future(_)) getOrElse {
-          for {
-            group <- FinagleCore.getChatGroup(msgInfo.receiverId)
-            // 创建一个conversation
-            con <- Chat.chatGroupConversation(group)
-          } yield con
-        }
-      }
-      message <- {
-        chatType match {
-          case SEND_TYPE_SINGLE => Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId, msgInfo.senderId, msgInfo.chatType)
-          case SEND_TYPE_GROUP => Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), conversation.id, msgInfo.receiverId, msgInfo.senderId, msgInfo.chatType)
-          case _ => throw new IllegalArgumentException("illegal conversation type")
-        }
-      }
-    } yield message
-
-    futureMsg map (msg => {
+  def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String): Future[Result] = {
+    Chat.sendMessage(msgType, contents, receiver, sender, chatType) map (msg => {
       val result = JsObject(Seq(
         "conversation" -> JsString(msg.getConversation.toString),
         "msgId" -> JsNumber(msg.getMsgId),
@@ -56,6 +30,41 @@ object ChatCtrl extends Controller {
       Helpers.JsonResponse(data = Some(result))
     })
   }
+
+  //  def sendMessageBase(msgInfo: MessageInfo): Future[Result] = {
+  //    val chatType = msgInfo.chatType
+  //    val futureConversation = Chat.chatGroupConversation(msgInfo.receiverId.toString)
+  //    val empty = futureConversation map (item => if (item nonEmpty) true else false)
+  //
+  //    val futureMsg: Future[Message] = for {
+  //      opt <- futureConversation
+  //      conversation <- {
+  //        opt map (Future(_)) getOrElse {
+  //          for {
+  //            group <- FinagleCore.getChatGroup(msgInfo.receiverId)
+  //            // 创建一个conversation
+  //            con <- Chat.chatGroupConversation(group)
+  //          } yield con
+  //        }
+  //      }
+  //      message <- {
+  //        chatType match {
+  //          case SEND_TYPE_SINGLE => Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), msgInfo.receiverId, msgInfo.senderId, msgInfo.chatType)
+  //          case SEND_TYPE_GROUP => Chat.sendMessage(msgInfo.msgType, msgInfo.contents.getOrElse(""), conversation.id, msgInfo.receiverId, msgInfo.senderId, msgInfo.chatType)
+  //          case _ => throw new IllegalArgumentException("illegal conversation type")
+  //        }
+  //      }
+  //    } yield message
+  //
+  //    futureMsg map (msg => {
+  //      val result = JsObject(Seq(
+  //        "conversation" -> JsString(msg.getConversation.toString),
+  //        "msgId" -> JsNumber(msg.getMsgId),
+  //        "timestamp" -> JsNumber(msg.getTimestamp)
+  //      ))
+  //      Helpers.JsonResponse(data = Some(result))
+  //    })
+  //  }
 
   @WithAccessLog
   def sendMessage() = Action.async {
@@ -68,7 +77,8 @@ object ChatCtrl extends Controller {
           chatType <- (jsonNode \ "chatType").asOpt[String]
           msgType <- (jsonNode \ "msgType").asOpt[Int]
           contents <- (jsonNode \ "contents").asOpt[String]
-        } yield sendMessageBase(MessageInfo(senderId, chatType, receiverId, msgType, Some(contents)))
+        } yield sendMessageBase(msgType, contents, receiverId, senderId, chatType)
+
         ret getOrElse Future(Results.UnprocessableEntity)
       }
   }
