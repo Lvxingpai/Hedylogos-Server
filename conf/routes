@@ -11,13 +11,13 @@ POST        /users/login                   controllers.UserCtrl.login
 
 POST        /users/logout                  controllers.UserCtrl.logout
 
+POST        /users/$uid<\d+>/messages      controllers.ChatCtrl.fetchMessages(uid: Long)
+
 POST        /upload/token-generator        controllers.MiscCtrl.uploadToken
 
 POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
 
 POST        /chats                         controllers.ChatCtrl.sendMessage
-
-POST        /chats/:user/ack               controllers.ChatCtrl.acknowledgeAndFetchMessages(user:Long)
 
 #GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 
