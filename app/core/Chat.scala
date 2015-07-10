@@ -1,7 +1,11 @@
 package core
 
+
 import com.lvxingpai.yunkai.ChatGroup
-import com.mongodb.DuplicateKeyException
+
+
+import com.mongodb.{ BasicDBObject, BasicDBObjectBuilder, DuplicateKeyException }
+
 import core.connector.{ HedyRedis, MorphiaFactory }
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
@@ -193,5 +197,42 @@ object Chat {
 
   def acknowledge(userId: Long, msgIdList: Seq[String]): Future[Unit] = {
     RedisMessaging.acknowledge(userId, msgIdList)
+  }
+
+  // 添加消息免打扰
+  def addMuteNotif(userId: Long, convId: ObjectId): Future[Unit] = {
+    val col = MorphiaFactory.getCollection(classOf[Conversation])
+    val query = BasicDBObjectBuilder.start().add(Conversation.fdId, convId).get()
+    val ops = new BasicDBObject("$addToSet",
+      new BasicDBObject(Conversation.fdMuteNotif,
+        BasicDBObjectBuilder.start().add("$each", userId)))
+    Future {
+      col.update(query, ops, true, false)
+    }
+  }
+  def addMuteNotif(userId: Long, fingerprint: String): Future[Unit] = {
+    val col = MorphiaFactory.getCollection(classOf[Conversation])
+    val query = BasicDBObjectBuilder.start().add(Conversation.fdFingerprint, fingerprint).get()
+    val ops = new BasicDBObject("$addToSet",
+      new BasicDBObject(Conversation.fdMuteNotif,
+        BasicDBObjectBuilder.start().add("$each", userId)))
+    Future {
+      col.update(query, ops, true, false)
+    }
+  }
+  // 取消消息免打扰
+  def removeMuteNotif(userId: Long, convId: ObjectId): Future[Unit] = {
+    val query = ds.find(classOf[Conversation], Conversation.fdFingerprint, convId)
+    val updateOps = ds.createUpdateOperations(classOf[Conversation]).removeAll(Conversation.fdMuteNotif, userId)
+    Future {
+      ds.updateFirst(query, updateOps)
+    }
+  }
+  def removeMuteNotif(userId: Long, fingerprint: String): Future[Unit] = {
+    val query = ds.find(classOf[Conversation], Conversation.fdFingerprint, fingerprint)
+    val updateOps = ds.createUpdateOperations(classOf[Conversation]).removeAll(Conversation.fdMuteNotif, userId)
+    Future {
+      ds.updateFirst(query, updateOps)
+    }
   }
 }

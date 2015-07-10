@@ -1,10 +1,11 @@
 package core.connector
 
 import com.lvxingpai.yunkai.{ ChatGroup, UserInfo }
-import com.mongodb.{ MongoClient, MongoClientOptions, MongoCredential, ServerAddress }
+import com.mongodb._
 import core.GlobalConfig
 import core.finagle.CoreConfig
 import models.{ Conversation }
+import org.mongodb.morphia.annotations.Property
 import org.mongodb.morphia.{ ValidationExtension, Morphia }
 
 import scala.collection.JavaConversions._
@@ -55,5 +56,15 @@ object MorphiaFactory {
     ds.ensureIndexes()
     ds.ensureCaps()
     ds
+  }
+
+  def getCollection[T](cls: Class[T]): DBCollection = {
+    val annotation = cls.getAnnotation(classOf[Property])
+    val colName = if (annotation != null)
+      annotation.value()
+    else
+      cls.getSimpleName
+    val db = datastore.getDB
+    db.getCollection(colName)
   }
 }
