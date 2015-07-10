@@ -1,7 +1,7 @@
 package models
 
 import org.bson.types.ObjectId
-import org.mongodb.morphia.annotations.{ Entity, Indexed }
+import org.mongodb.morphia.annotations.{ Transient, Entity, Indexed }
 
 import scala.beans.BeanProperty
 
@@ -38,7 +38,13 @@ class Message extends AbstractEntiry {
   var contents: String = null
 
   @BeanProperty
-  var msgType: Integer = 0
+  var msgType: Int = 0
+
+  /**
+   * 消息的摘要。用于显示在通知中心里面
+   */
+  @Transient
+  var abbrev: String = null
 
   @BeanProperty
   var timestamp: Long = 0
@@ -62,7 +68,19 @@ object Message {
     val TIP = Value(200)
   }
 
-  def apply(msgType: MessageType.Value, contents: String, cid: ObjectId, msgId: Long, receiver: Long, sender: Long, chatType: String): Message = {
+  object ChatType extends Enumeration {
+    /**
+     * 单聊
+     */
+    val SINGLE = Value(0, "single")
+
+    /**
+     * 群聊
+     */
+    val CHATGROUP = Value(1, "group")
+  }
+
+  def apply(msgType: MessageType.Value, contents: String, cid: ObjectId, msgId: Long, receiver: Long, sender: Long, chatType: ChatType.Value): Message = {
     val message = new Message
     message.id = new ObjectId()
     message.msgType = msgType.id
@@ -71,7 +89,7 @@ object Message {
     message.msgId = msgId
     message.receiverId = receiver
     message.senderId = sender
-    message.chatType = chatType
+    message.chatType = chatType.toString
     message.timestamp = System.currentTimeMillis()
     message
   }

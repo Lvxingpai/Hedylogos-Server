@@ -11,6 +11,7 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
+import scala.language.postfixOps
 
 /**
  * 个推推送服务
@@ -33,18 +34,8 @@ object GetuiService extends MessageDeliever {
     template.setTransmissionType(2)
     template.setTransmissionContent(MessageFormatter.formatAddRouteKey(msg, "IM").toString())
 
-    // * 如果为普通文本消息，则可以直接通过APNS推送正文
-    // * APNS消息的最大长度为maxLen
-    val pushText = if (msg.getMsgId == 1) {
-      val contents = msg.getContents
-      val maxLen = 16
-      if (contents.length > maxLen) contents.take(maxLen) + "..." else contents
-    } else if (msg.getMsgId == 100) {
-      val contents = msg.getContents
-      val maxLen = 16
-      if (contents.length > maxLen) contents.take(maxLen) + "..." else contents
-    } else "你收到了一条新消息"
-    template.setPushInfo("", 1, pushText, "default", "", "", "", "")
+    if (msg.abbrev != null && msg.abbrev.nonEmpty)
+      template.setPushInfo("", 1, msg.abbrev, "default", "", "", "", "")
 
     val targetList = clientIdList.map(cid => {
       val target = new Target
