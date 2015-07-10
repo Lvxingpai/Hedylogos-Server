@@ -1,10 +1,11 @@
 package core
 
-import com.lvxingpai.appconfig.AppConfig
+import com.lvxingpai.appconfig.{ AppConfig, EtcdConfBuilder, EtcdServiceBuilder }
+import play.api.Configuration
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
 
 /**
@@ -14,21 +15,31 @@ import scala.language.postfixOps
  */
 object GlobalConfig {
   lazy val playConf = {
-    val defaultConf = AppConfig.defaultConfig
+
+    val defaultConf = Configuration(AppConfig.defaultConfig)
 
     // 是否为生产环境
-    val isProduction = defaultConf.hasPath("runlevel") && defaultConf.getString("runlevel") == "production"
+    val runlevel = defaultConf.getString("runlevel").orNull
+
+    assert(Seq("production", "dev") contains runlevel, s"Invalid runlevel: $runlevel")
+
+    val isProduction = runlevel == "production"
+
     val mongoKey = if (isProduction) "mongo" else "mongo-dev"
     val confKeys = if (isProduction)
       Seq("hedylogos" -> "hedylogos")
     else
       Seq("hedylogos-dev" -> "hedylogos", "hedylogos" -> "hedylogos")
 
+    val services = EtcdServiceBuilder().addKey(mongoKey, "mongo").addKey("redis-main", "redis").build()
+    val conf = confKeys.foldLeft(EtcdConfBuilder())((builder, pair) => {
+      builder.addKey(pair._1, pair._2)
+    }).build()
+
     val timeout = 30 seconds
 
-    Await.result(AppConfig.buildConfig(
-      Some(confKeys),
-      Some(Seq(mongoKey -> "mongo", "redis-main" -> "redis"))),
-      timeout)
+    val future = Future.sequence(Seq(services, conf)) map (_ reduce ((c1, c2) => c1 withFallback c2)) map (Configuration(_))
+
+    Await.result(future map (_ ++ defaultConf), timeout)
   }
 }

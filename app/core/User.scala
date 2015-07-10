@@ -12,11 +12,11 @@ import scala.concurrent.Future
  * Created by zephyre on 4/20/15.
  */
 object User {
-  def userId2key(userId: Long): String = s"$userId.loginInfo"
+  def userId2key(userId: Long): String = s"hedy:users/$userId"
 
   def login(userId: Long, regId: String, deviceToken: Option[String] = None): Future[Unit] = {
     Future {
-      HedyRedis.clients.withClient(_.hmset(userId2key(userId),
+      HedyRedis.pool.withClient(_.hmset(userId2key(userId),
         Map("regId" -> regId, "deviceToken" -> deviceToken.getOrElse(""), "loginTs" -> System.currentTimeMillis,
           "status" -> "login"))
       )
@@ -25,14 +25,14 @@ object User {
 
   def logout(userId: Long): Future[Unit] = {
     Future {
-      HedyRedis.clients.withClient(_.hmset(userId2key(userId),
+      HedyRedis.pool.withClient(_.hmset(userId2key(userId),
         Map("logoutTs" -> System.currentTimeMillis, "status" -> "logout")));
     }
   }
 
   def loginInfo(userId: Long): Future[Option[Map[String, Any]]] = {
     Future {
-      val result = HedyRedis.clients.withClient(_.hgetall[String, String](userId2key(userId)).get)
+      val result = HedyRedis.pool.withClient(_.hgetall[String, String](userId2key(userId)).get)
       val items = ArrayBuffer[(String, Any)]()
       if (result.nonEmpty) {
         Array("regId", "status").foreach(key => items += key -> result(key))
@@ -53,5 +53,5 @@ object User {
     }
   }
 
-  def destroyUser(userId: Long): Unit = HedyRedis.clients.withClient(_.del(userId2key(userId)))
+  def destroyUser(userId: Long): Unit = HedyRedis.pool.withClient(_.del(userId2key(userId)))
 }

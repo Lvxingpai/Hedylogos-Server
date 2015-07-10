@@ -21,11 +21,6 @@ import scala.language.postfixOps
 object Chat {
   val ds = MorphiaFactory.datastore
 
-  def destroyConversation(cid: ObjectId): Unit = {
-    ds.delete(classOf[Conversation], cid)
-    HedyRedis.clients.withClient(_.del(s"$cid.msgId"))
-  }
-
   /**
    * 获得一个单聊的Conversation
    *
@@ -99,7 +94,8 @@ object Chat {
    */
   def generateMsgId(cid: ObjectId): Future[Option[Long]] = {
     Future {
-      HedyRedis.clients.withClient(_.incr(s"$cid.msgId"))
+      val key = s"hedy:conversations/${cid.toString}/msgId"
+      HedyRedis.pool.withClient(_.incr(key))
     }
   }
 
