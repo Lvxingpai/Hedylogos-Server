@@ -216,11 +216,8 @@ object Chat {
     } yield ret
   }
 
-  def fetchMessage(userId: Long): Future[Seq[Message]] = {
-    RedisMessaging.fetchMessages(userId)
-  }
-
-  def acknowledge(userId: Long, msgIdList: Seq[String]): Future[Unit] = {
-    RedisMessaging.acknowledge(userId, msgIdList)
+  def fetchAndAckMessage(userId: Long, purgeBefore: Long): Future[Seq[Message]] = {
+    RedisMessaging.removeMessages(userId, purgeBefore)
+    RedisMessaging.fetchMessages(userId, purgeBefore)
   }
 }
