@@ -6,6 +6,7 @@ import core.json.MessageFormatter
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
+import core.Implicits._
 
 import scala.concurrent.Future
 import scala.language.postfixOps

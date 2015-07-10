@@ -1,12 +1,13 @@
 package core
 
 import com.mongodb.DuplicateKeyException
-import core.TwitterConverter._
+import core.Implicits.TwitterConverter._
+import core.Implicits._
 import core.connector.{ HedyRedis, MorphiaFactory }
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
 import misc.FinagleFactory
-import models.Message.MessageType
+import models.Message.{ ChatType, MessageType }
 import models._
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -19,16 +20,6 @@ import scala.language.postfixOps
  */
 object Chat {
   val ds = MorphiaFactory.datastore
-
-  //  /**
-  //   * 通过id获得conversation信息
-  //   */
-  //  def conversation(cid: ObjectId): Future[Option[Conversation]] = {
-  //    Future {
-  //      val result = ds.find(classOf[Conversation], "id", cid).get()
-  //      Option(result)
-  //    }
-  //  }
 
   def destroyConversation(cid: ObjectId): Unit = {
     ds.delete(classOf[Conversation], cid)
@@ -100,38 +91,6 @@ object Chat {
     } yield conversation
   }
 
-  //  /**
-  //   * 创建群组的会话
-  //   *
-  //   * @param chatGroup
-  //   * @param create
-  //   * @return
-  //   */
-  //  def chatGroupConversation(chatGroup: ChatGroup, create: Boolean = true): Future[Conversation] = {
-  //    Future {
-  //      val conversation: Conversation = Conversation(chatGroup.id, chatGroup.chatGroupId)
-  //      try {
-  //        ds.save[Conversation](conversation)
-  //        conversation
-  //      } catch {
-  //        case e: DuplicateKeyException =>
-  //          val result = ds.find(classOf[Conversation], Conversation.fdFingerprint, conversation.getFingerprint).get
-  //          result
-  //      }
-  //    }
-  //  }
-
-  //  def opGroupConversation(chatGroup: ChatGroup, participants: Seq[Long], isAdd: Boolean = true): Future[Unit] = {
-  //    Future {
-  //      val ops = ds.createUpdateOperations(classOf[Conversation])
-  //      if (isAdd)
-  //        ops.addAll(models.Conversation.fdFingerprint, participants, false)
-  //      else
-  //        ops.removeAll(models.Conversation.fdFingerprint, participants)
-  //      ds.updateFirst(ds.createQuery(classOf[Conversation]).field("id").equal(chatGroup.id), ops)
-  //    }
-  //  }
-
   /**
    * 将指定conversation的msgIdCounter自增，并返回，作为新的msgId
    *
@@ -144,56 +103,12 @@ object Chat {
     }
   }
 
-  /**
-   * 获得指定conversation的当前msgId
-   *
-   * @param cid Conversation的Id
-   * @return
-   */
-  def msgId(cid: ObjectId): Future[Option[Long]] = {
-    Future {
-      val result: Option[String] = HedyRedis.clients.withClient(_.get(s"$cid.msgId"))
-      if (result != None) Some(result.get.toLong) else None
-    }
-  }
+  def buildMessage(msgType: MessageType.Value, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] =
+    generateMsgId(cid) map (v => Message(msgType, contents, cid, v.get, receiver, sender, chatType))
 
-  //  def chatGroupConversation(fingerprint: String): Future[Option[Conversation]] = {
-  //    Future {
-  //      val result = ds.find(classOf[Conversation], Conversation.fdFingerprint, fingerprint).get
-  //      Option(result)
-  //    }
-  //  }
-
-  def buildMessage(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] =
-    generateMsgId(cid) map (v => Message(MessageType(msgType), contents, cid, v.get, receiver, sender, chatType))
-
-  def buildMessage(msgType: Int, contents: String, cidList: Seq[ObjectId], receiver: Long, sender: Long, chatType: String): Future[Seq[Message]] = {
-    def cidList2Message(cids: Seq[ObjectId]): Seq[Message] = {
-      for {
-        cid <- cids
-      } yield {
-        val msg = new Message()
-        msg.setId(new ObjectId())
-        msg.setContents(contents)
-        msg.setMsgType(msgType)
-        msg.setTimestamp(System.currentTimeMillis)
-        msg.setConversation(cid)
-        msg.setSenderId(sender)
-        msg.setReceiverId(receiver)
-        msg.setChatType(chatType)
-
-        val futureMsgId = generateMsgId(cid)
-        futureMsgId.map(v => {
-          msg.setMsgId(v.get)
-          msg
-        })
-        msg
-      }
-    }
-    val result = Future {
-      cidList2Message(cidList)
-    }
-    result
+  def buildMessage(msgType: MessageType.Value, contents: String, cidList: Seq[ObjectId], receiver: Long, sender: Long, chatType: ChatType.Value): Future[Seq[Message]] = {
+    val ret = cidList map (cid => buildMessage(msgType, contents, cid, receiver, sender, chatType))
+    Future.sequence(ret)
   }
 
   /**
@@ -201,11 +116,14 @@ object Chat {
    *
    * @return
    */
-  def sendMessageToConv(msgType: Int, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: String): Future[Message] = {
-    val futureMsg = buildMessage(msgType, contents, cid, receiver, sender, chatType)
+  def sendMessageToConv(msg: Message): Future[Message] = {
+    val chatType: ChatType.Value = msg.chatType
+    val receiver = msg.receiverId
+    val sender = msg.senderId
+
     val futureTargets = chatType match {
-      case "single" => Future(Seq(receiver))
-      case "group" =>
+      case item if item.id == ChatType.SINGLE.id => Future(Seq(receiver))
+      case item if item.id == ChatType.CHATGROUP.id =>
         FinagleCore.getChatGroup(receiver) map (cg => {
           val members = cg.participants
           Set(members filter (_ != sender): _*).toSeq
@@ -214,7 +132,6 @@ object Chat {
 
     val mongoResult = for {
       targets <- futureTargets
-      msg <- futureMsg
       result <- MongoStorage.sendMessage(msg, targets)
     } yield result
 
@@ -229,21 +146,78 @@ object Chat {
   }
 
   /**
+   * 生成消息的摘要文本。可以为None
+   * @return
+   */
+  def buildMessageAbbrev(msg: Message): Future[Option[String]] = {
+    import Message.MessageType._
+
+    val tailOpt =
+      msg.msgType match {
+        case item if item == TEXT.id =>
+          val maxLen = 16
+          // 截断后的消息
+          val abbrev = if (msg.contents.length >= maxLen)
+            msg.contents.take(maxLen) + "..."
+          else
+            msg.contents
+          Some(s": $abbrev")
+        case item if item == IMAGE.id =>
+          Some("发来了一张照片")
+        case item if item == AUDIO.id =>
+          Some("发来了一段语音")
+        case item if item == LOCATION.id =>
+          Some("发来了一个位置")
+        case item if item == GUIDE.id =>
+          Some("发来了一篇攻略")
+        case item if item == TRAVEL_NOTE.id =>
+          Some("发来了一篇游记")
+        case item if item == CITY_POI.id =>
+          Some("发来了一段目的地介绍")
+        case item if item == SPOT.id =>
+          Some("发来了一段景点介绍")
+        case item if item == RESTAURANT.id =>
+          Some("发来了一个餐厅")
+        case item if item == SHOPPING.id =>
+          Some("发来了一个扫货好去处")
+        case item if item == HOTEL.id =>
+          Some("发来了一个酒店")
+        case _ =>
+          None
+      }
+
+    val abbrev = tailOpt map (tail =>
+      FinagleCore.getUserById(msg.senderId) map (v => (v map (_.nickName) getOrElse "神秘人") + tail))
+
+    abbrev map (future => {
+      future map (s => {
+        val r: Option[String] = Some(s)
+        r
+      })
+    }) getOrElse Future(None)
+  }
+
+  /**
    * 向接收者（可以是个人，也可以是讨论组）发送消息
    *
    * @param chatType 消息类型：单聊和群聊这两种
    * @return
    */
-  def sendMessage(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String): Future[Message] = {
+  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] = {
     val conversation = chatType match {
-      case "single" => Chat.getSingleConversation(sender, receiver)
-      case "group" => Chat.getChatGroupConversation(receiver)
+      case item if item.id == ChatType.SINGLE.id => Chat.getSingleConversation(sender, receiver)
+      case item if item.id == ChatType.CHATGROUP.id => Chat.getChatGroupConversation(receiver)
     }
 
     for {
       c <- conversation
-      msg <- sendMessageToConv(msgType, contents, c.id, receiver, sender, chatType)
-    } yield msg
+      msg <- buildMessage(msgType, contents, c.id, receiver, sender, chatType)
+      abbrev <- buildMessageAbbrev(msg)
+      ret <- {
+        msg.abbrev = abbrev.orNull
+        sendMessageToConv(msg)
+      }
+    } yield ret
   }
 
   def fetchMessage(userId: Long): Future[Seq[Message]] = {
