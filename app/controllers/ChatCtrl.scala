@@ -11,7 +11,7 @@ import org.bson.types.ObjectId
 
 import scala.concurrent.Future
 import scala.language.postfixOps
-
+import scala.collection.Map
 /**
  * Created by zephyre on 4/23/15.
  */
@@ -34,9 +34,14 @@ object ChatCtrl extends Controller {
   def updateConversationProperty(uid: Long, cid: String) = Action.async {
     request =>
       {
-        val jsonNode = request.body.asJson.get
-        val action = (jsonNode \ "action").asOpt[String].get
-        Chat.opConversationProperty(action, uid, new ObjectId(cid)) map (_ => Helpers.JsonResponse())
+        val result = for {
+          body <- request.body.asJson
+        } yield {
+          val muteOpt = (body \ "mute").asOpt[Boolean]
+          val settings = Map("mute" -> muteOpt).filter(_._2 nonEmpty).mapValues(_.get)
+          Chat.opConversationProperty(uid, new ObjectId(cid), settings) map (_ => Helpers.JsonResponse())
+        }
+        result getOrElse Future(Results.BadRequest)
       }
   }
 

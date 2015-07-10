@@ -1,13 +1,9 @@
 package core.connector
 
-import com.mongodb._
-import org.mongodb.morphia.annotations.Property
-
 import com.mongodb.{ MongoClient, MongoClientOptions, MongoCredential, ServerAddress }
 import core.GlobalConfig
 import models.Conversation
 import org.mongodb.morphia.Morphia
-
 
 import scala.collection.JavaConversions._
 
@@ -59,15 +55,5 @@ object MorphiaFactory {
     ds.ensureIndexes()
     ds.ensureCaps()
     ds
-  }
-
-  def getCollection[T](cls: Class[T]): DBCollection = {
-    val annotation = cls.getAnnotation(classOf[Property])
-    val colName = if (annotation != null)
-      annotation.value()
-    else
-      cls.getSimpleName
-    val db = datastore.getDB
-    db.getCollection(colName)
   }
 }

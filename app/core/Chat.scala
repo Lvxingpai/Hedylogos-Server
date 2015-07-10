@@ -11,10 +11,12 @@ import misc.FinagleFactory
 import models.Message.{ ChatType, MessageType }
 import models._
 import org.bson.types.ObjectId
+import org.mongodb.morphia.query.UpdateOperations
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.collection.Map
 
 /**
  * Created by zephyre on 4/20/15.
@@ -222,40 +224,28 @@ object Chat {
     RedisMessaging.fetchMessages(userId, purgeBefore)
   }
 
-  val ADD_MUTENOTIF = "addmutenotif"
-  val REMOVE_MUTENOTIF = "removemutenotif"
-  def opConversationProperty(action: String, uid: Long, cid: ObjectId): Future[Unit] = {
-    Future {
-      action match {
-        case ADD_MUTENOTIF => addMuteNotif(uid, cid)
-        case REMOVE_MUTENOTIF => removeMuteNotif(uid, cid)
-      }
-    }
+  def opConversationProperty(uid: Long, cid: ObjectId, settings: Map[String, Boolean]): Future[Unit] = {
+    val ret = settings.toSeq map (item => item._1 match {
+      case "mute" => opMuteNotif(uid, cid, item._2)
+    })
+
+    Future.sequence(ret) map (_ => ())
   }
 
   /**
-   * 添加消息免打扰
-   * @param userId 被添加消息免打扰的用户Id
-   * @param convId 根据ObjectId查找Conversation
+   * 设置/取消消息免打扰
+   * @param userId
+   * @param convId
+   * @param mute true为免打扰, false为取消免打扰
    * @return
    */
-  def addMuteNotif(userId: Long, convId: ObjectId): Future[Unit] = {
+  def opMuteNotif(userId: Long, convId: ObjectId, mute: Boolean): Future[Unit] = {
     val query = ds.find(classOf[Conversation], Conversation.fdId, convId)
-    val updateOps = ds.createUpdateOperations(classOf[Conversation]).add(Conversation.fdMuteNotif, userId, false)
-    Future {
-      ds.updateFirst(query, updateOps)
+    var updateOps: UpdateOperations[Conversation] = null
+    mute match {
+      case true => updateOps = ds.createUpdateOperations(classOf[Conversation]).add(Conversation.fdMuteNotif, userId, false)
+      case false => updateOps = ds.createUpdateOperations(classOf[Conversation]).removeAll(Conversation.fdMuteNotif, userId)
     }
-  }
-
-  /**
-   * 取消消息免打扰
-   * @param userId 被取消的人Id
-   * @param convId 根据ObjectId查找Conversation
-   * @return
-   */
-  def removeMuteNotif(userId: Long, convId: ObjectId): Future[Unit] = {
-    val query = ds.find(classOf[Conversation], Conversation.fdId, convId)
-    val updateOps = ds.createUpdateOperations(classOf[Conversation]).removeAll(Conversation.fdMuteNotif, userId)
     Future {
       ds.updateFirst(query, updateOps)
     }
