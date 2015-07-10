@@ -1,6 +1,6 @@
 package core
 
-import com.mongodb.{ BasicDBObject, BasicDBObjectBuilder, DuplicateKeyException }
+import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
 
@@ -229,37 +229,39 @@ object Chat {
     RedisMessaging.acknowledge(userId, msgIdList)
   }
 
-  // 添加消息免打扰
+  val ADD_MUTENOTIF = "addmutenotif"
+  val REMOVE_MUTENOTIF = "removemutenotif"
+  def opConversationProperty(action: String, uid: Long, cid: ObjectId): Future[Unit] = {
+    Future {
+      action match {
+        case ADD_MUTENOTIF => addMuteNotif(uid, cid)
+        case REMOVE_MUTENOTIF => removeMuteNotif(uid, cid)
+      }
+    }
+  }
+
+  /**
+   * 添加消息免打扰
+   * @param userId 被添加消息免打扰的用户Id
+   * @param convId 根据ObjectId查找Conversation
+   * @return
+   */
   def addMuteNotif(userId: Long, convId: ObjectId): Future[Unit] = {
-    val col = MorphiaFactory.getCollection(classOf[Conversation])
-    val query = BasicDBObjectBuilder.start().add(Conversation.fdId, convId).get()
-    val ops = new BasicDBObject("$addToSet",
-      new BasicDBObject(Conversation.fdMuteNotif,
-        BasicDBObjectBuilder.start().add("$each", userId)))
-    Future {
-      col.update(query, ops, true, false)
-    }
-  }
-  def addMuteNotif(userId: Long, fingerprint: String): Future[Unit] = {
-    val col = MorphiaFactory.getCollection(classOf[Conversation])
-    val query = BasicDBObjectBuilder.start().add(Conversation.fdFingerprint, fingerprint).get()
-    val ops = new BasicDBObject("$addToSet",
-      new BasicDBObject(Conversation.fdMuteNotif,
-        BasicDBObjectBuilder.start().add("$each", userId)))
-    Future {
-      col.update(query, ops, true, false)
-    }
-  }
-  // 取消消息免打扰
-  def removeMuteNotif(userId: Long, convId: ObjectId): Future[Unit] = {
-    val query = ds.find(classOf[Conversation], Conversation.fdFingerprint, convId)
-    val updateOps = ds.createUpdateOperations(classOf[Conversation]).removeAll(Conversation.fdMuteNotif, userId)
+    val query = ds.find(classOf[Conversation], Conversation.fdId, convId)
+    val updateOps = ds.createUpdateOperations(classOf[Conversation]).add(Conversation.fdMuteNotif, userId, false)
     Future {
       ds.updateFirst(query, updateOps)
     }
   }
-  def removeMuteNotif(userId: Long, fingerprint: String): Future[Unit] = {
-    val query = ds.find(classOf[Conversation], Conversation.fdFingerprint, fingerprint)
+
+  /**
+   * 取消消息免打扰
+   * @param userId 被取消的人Id
+   * @param convId 根据ObjectId查找Conversation
+   * @return
+   */
+  def removeMuteNotif(userId: Long, convId: ObjectId): Future[Unit] = {
+    val query = ds.find(classOf[Conversation], Conversation.fdId, convId)
     val updateOps = ds.createUpdateOperations(classOf[Conversation]).removeAll(Conversation.fdMuteNotif, userId)
     Future {
       ds.updateFirst(query, updateOps)

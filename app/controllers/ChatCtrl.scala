@@ -7,6 +7,7 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
 import core.Implicits._
+import org.bson.types.ObjectId
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -32,6 +33,15 @@ object ChatCtrl extends Controller {
     })
   }
 
+  @WithAccessLog
+  def updateConversationProperty(uid: Long, cid: String) = Action.async {
+    request =>
+      {
+        val jsonNode = request.body.asJson.get
+        val action = (jsonNode \ "action").asOpt[String].get
+        Chat.opConversationProperty(action, uid, new ObjectId(cid)) map (_ => Helpers.JsonResponse())
+      }
+  }
   //  def sendMessageBase(msgInfo: MessageInfo): Future[Result] = {
   //    val chatType = msgInfo.chatType
   //    val futureConversation = Chat.chatGroupConversation(msgInfo.receiverId.toString)

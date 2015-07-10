@@ -3,21 +3,24 @@
 # ~~~~
 
 # Home page
-GET         /                              controllers.Application.index
+GET         /                                                       controllers.Application.index
 
-GET         /version                       controllers.UserCtrl.version
+GET         /version                                                controllers.UserCtrl.version
 
-POST        /users/login                   controllers.UserCtrl.login
+# PUT /users/100028/conversations/558ba2a124aa9a0001f6dafe
+PUT         /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>      controllers.ChatCtrl.updateConversationProperty(uid:Long, cid:String)
 
-POST        /users/logout                  controllers.UserCtrl.logout
+POST        /users/login                                            controllers.UserCtrl.login
 
-POST        /upload/token-generator        controllers.MiscCtrl.uploadToken
+POST        /users/logout                                           controllers.UserCtrl.logout
 
-POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
+POST        /upload/token-generator                                 controllers.MiscCtrl.uploadToken
 
-POST        /chats                         controllers.ChatCtrl.sendMessage
+POST        /misc/qiniu-callback                                    controllers.MiscCtrl.qiniuCallback
 
-POST        /chats/:user/ack               controllers.ChatCtrl.acknowledgeAndFetchMessages(user:Long)
+POST        /chats                                                  controllers.ChatCtrl.sendMessage
+
+POST        /chats/:user/ack                                        controllers.ChatCtrl.acknowledgeAndFetchMessages(user:Long)
 
 #GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 
