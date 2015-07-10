@@ -16,17 +16,27 @@ object User {
 
   def login(userId: Long, regId: String, deviceToken: Option[String] = None): Future[Unit] = {
     Future {
-      HedyRedis.pool.withClient(_.hmset(userId2key(userId),
-        Map("regId" -> regId, "deviceToken" -> deviceToken.getOrElse(""), "loginTs" -> System.currentTimeMillis,
-          "status" -> "login"))
-      )
+      HedyRedis.pool.withClient(client => {
+        client.hmset(userId2key(userId),
+          Map("regId" -> regId, "deviceToken" -> deviceToken.getOrElse(""), "loginTs" -> System.currentTimeMillis,
+            "status" -> "login"))
+        val clientIdKey = s"hedy:getui/clientIds/$regId"
+        client.set(clientIdKey, userId)
+      })
     }
   }
 
   def logout(userId: Long): Future[Unit] = {
     Future {
-      HedyRedis.pool.withClient(_.hmset(userId2key(userId),
-        Map("logoutTs" -> System.currentTimeMillis, "status" -> "logout")));
+      HedyRedis.pool.withClient(client => {
+        // 移除clientId
+        val key = userId2key(userId)
+        val clientId = client.hget(key, "regId")
+
+        // 需要移除的键：key以及clientId
+        val removedKeys = key +: clientId.map(v => Seq(s"hedy:getui/clientIds/$v")).getOrElse(Seq())
+        client.del(removedKeys.head, removedKeys.tail: _*)
+      })
     }
   }
 
