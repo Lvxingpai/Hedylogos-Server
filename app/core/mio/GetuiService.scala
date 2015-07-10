@@ -20,14 +20,17 @@ import scala.language.postfixOps
  */
 object GetuiService extends MessageDeliever {
 
-  val conf = GlobalConfig.playConf.getConfig("hedylogos")
-  val master = conf.getString("getui.master")
-  val host = conf.getString("getui.host")
-  val gtAppId = conf.getString("getui.appId")
-  val gtAppKey = conf.getString("getui.appKey")
+  val conf = GlobalConfig.playConf.getConfig("hedylogos").get
+  val master = conf.getString("getui.master").get
+  val host = conf.getString("getui.host").get
+  val gtAppId = conf.getString("getui.appId").get
+  val gtAppKey = conf.getString("getui.appKey").get
   val gtPush = new IGtPush(host, gtAppKey, master)
 
   private def sendTransmission(msg: Message, clientIdList: Seq[String]): Unit = {
+    if (clientIdList isEmpty)
+      return
+
     val template = new TransmissionTemplate
     template.setAppId(gtAppId)
     template.setAppkey(gtAppKey)

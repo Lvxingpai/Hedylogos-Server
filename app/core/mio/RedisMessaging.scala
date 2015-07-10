@@ -11,13 +11,12 @@ import scala.concurrent.Future
  * Created by zephyre on 4/22/15.
  */
 object RedisMessaging extends MessageDeliever {
-  def userId2key(userId: Long): String = s"$userId.fetchInfo"
+  def userId2key(userId: Long): String = s"hedy:users/$userId/mailbox"
 
   override def sendMessage(message: Message, targets: Seq[Long]): Future[Message] = {
-
     // 发送给单个用户
     def send2individual(userId: Long): Unit =
-      HedyRedis.clients.withClient(_.sadd(userId2key(userId), message.getId.toString))
+      HedyRedis.pool.withClient(_.zadd(userId2key(userId), message.timestamp, message.getId.toString))
 
     val tasks = targets.map(uid => Future {
       send2individual(uid)
@@ -26,47 +25,34 @@ object RedisMessaging extends MessageDeliever {
     Future.fold(tasks)(Seq())((result, _) => result).map(_ => message)
   }
 
-  def sendMessageList(message: Seq[Message], targets: Seq[Long]): Future[Seq[Message]] = {
-
-    //    def msgAndTet2Map(message: Seq[Message], targets: Seq[Long]):Map[Long,Message] ={
-    //
-    //    }
-    // TODO
-    // 发送给多个用户
-    def send2Mul(userId: Long): Unit =
-      HedyRedis.clients.withClient(_.sadd(userId2key(userId), message(0).getId.toString))
-
-    val tasks = targets.map(uid => Future {
-      send2Mul(uid)
-    })
-
-    Future.fold(tasks)(Seq())((result, _) => result).map(_ => message)
-  }
-
-  def fetchMessages(userId: Long): Future[Seq[Message]] = {
+  /**
+   * 从mailbox里面取出消息（timestamp之后的）
+   * @return
+   */
+  def fetchMessages(userId: Long, timestamp: Long = 0): Future[Seq[Message]] = {
     val key = userId2key(userId)
-    val msgKeys = HedyRedis.clients.withClient(_.smembers[String](key).get.filter(_.nonEmpty).map(_.get))
-    if (msgKeys.isEmpty)
-      Future(Seq[Message]())
-    else {
-      val msgIds = msgKeys.map(new ObjectId(_: String)).toSeq
-      val messages = MongoStorage.fetchMessages(msgIds)
 
-      messages.map(msgList => HedyRedis.clients.withClient(_.srem(key, "", msgList.toSeq: _*)))
-      messages
+    val future = Future {
+      val ret = for {
+        l <- HedyRedis.pool.withClient(_.zrangebyscore[String](key, min = timestamp, minInclusive = false, limit = None))
+      } yield l.toSeq map (new ObjectId(_))
+      ret getOrElse Seq()
     }
+
+    future flatMap MongoStorage.fetchMessages
   }
 
-  def acknowledge(userId: Long, msgList: Seq[String]): Future[Unit] = {
+  /**
+   * 从mailbox里面清除消息（timestamp之前的）
+   * @param userId
+   * @param timestamp
+   * @return
+   */
+  def removeMessages(userId: Long, timestamp: Long = 0): Future[Unit] = {
+    val key = userId2key(userId)
+
     Future {
-      val key = userId2key(userId)
-      HedyRedis.clients.withClient(_.srem(key, "", msgList: _*))
+      HedyRedis.pool.withClient(_.zremrangebyscore(key, end = timestamp + 0.01))
     }
   }
-
-  def destroyFetchSets(userIds: Seq[Long]): Unit = {
-    val keyList = userIds.map(userId2key)
-    HedyRedis.clients.withClient(_.del("", keyList: _*))
-  }
-
 }

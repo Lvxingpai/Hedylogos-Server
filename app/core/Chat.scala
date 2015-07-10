@@ -22,11 +22,6 @@ import scala.language.postfixOps
 object Chat {
   val ds = MorphiaFactory.datastore
 
-  def destroyConversation(cid: ObjectId): Unit = {
-    ds.delete(classOf[Conversation], cid)
-    HedyRedis.clients.withClient(_.del(s"$cid.msgId"))
-  }
-
   /**
    * 获得一个单聊的Conversation
    *
@@ -100,7 +95,8 @@ object Chat {
    */
   def generateMsgId(cid: ObjectId): Future[Option[Long]] = {
     Future {
-      HedyRedis.clients.withClient(_.incr(s"$cid.msgId"))
+      val key = s"hedy:conversations/${cid.toString}/msgId"
+      HedyRedis.pool.withClient(_.incr(key))
     }
   }
 
@@ -221,12 +217,9 @@ object Chat {
     } yield ret
   }
 
-  def fetchMessage(userId: Long): Future[Seq[Message]] = {
-    RedisMessaging.fetchMessages(userId)
-  }
-
-  def acknowledge(userId: Long, msgIdList: Seq[String]): Future[Unit] = {
-    RedisMessaging.acknowledge(userId, msgIdList)
+  def fetchAndAckMessage(userId: Long, purgeBefore: Long): Future[Seq[Message]] = {
+    RedisMessaging.removeMessages(userId, purgeBefore)
+    RedisMessaging.fetchMessages(userId, purgeBefore)
   }
 
   val ADD_MUTENOTIF = "addmutenotif"

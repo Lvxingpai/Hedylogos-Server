@@ -8,11 +8,15 @@ GET         /                                                       controllers.
 GET         /version                                                controllers.UserCtrl.version
 
 # PUT /users/100028/conversations/558ba2a124aa9a0001f6dafe
-PUT         /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>      controllers.ChatCtrl.updateConversationProperty(uid:Long, cid:String)
+PUT         /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>       controllers.ChatCtrl.updateConversationProperty(uid:Long, cid:String)
 
 POST        /users/login                                            controllers.UserCtrl.login
 
 POST        /users/logout                                           controllers.UserCtrl.logout
+
+POST        /users/$uid<\d+>/messages                               controllers.ChatCtrl.fetchMessages(uid: Long)
+
+POST        /upload/token-generator                                 controllers.MiscCtrl.uploadToken
 
 POST        /upload/token-generator                                 controllers.MiscCtrl.uploadToken
 
@@ -20,7 +24,6 @@ POST        /misc/qiniu-callback                                    controllers.
 
 POST        /chats                                                  controllers.ChatCtrl.sendMessage
 
-POST        /chats/:user/ack                                        controllers.ChatCtrl.acknowledgeAndFetchMessages(user:Long)
 
 #GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 
