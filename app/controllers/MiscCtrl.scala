@@ -1,7 +1,5 @@
 package controllers
 
-import com.typesafe.config.Config
-import controllers.ChatCtrl.MessageInfo
 import core.GlobalConfig
 import core.GlobalConfig.playConf
 import core.aspectj.WithAccessLog
@@ -10,8 +8,6 @@ import models.Message.MessageType
 import org.bson.types.ObjectId
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller }
-
-import scala.collection.JavaConversions._
 
 /**
  * Created by zephyre on 4/25/15.
@@ -39,7 +35,7 @@ object MiscCtrl extends Controller {
    *
    * @return
    */
-  private def sendMessageToken(bucket: String = "imres", key: String, msgType: MessageType.Value)(implicit playConf: Config): String = {
+  private def sendMessageToken(bucket: String = "imres", key: String, msgType: MessageType.Value): String = {
     // 生成Map(location->x:location, price->x:price)之类的用户自定义变量
     // 参见：http://developer.qiniu.com/docs/v6/api/overview/up/response/vars.html#xvar
 
@@ -113,8 +109,8 @@ object MiscCtrl extends Controller {
         val key = postMap.get("key").get
 
         // 获得contents内容
-        val conf = playConf.getConfig("hedylogos")
-        val host = conf.getString(s"qiniu.bucket.$bucket")
+        val conf = playConf.getConfig("hedylogos").get
+        val host = conf.getString(s"qiniu.bucket.$bucket").get
         val baseUrl = s"http://$host/$key"
         val styleSeparator = "!"
         val expire = 7 * 24 * 3600
@@ -126,13 +122,14 @@ object MiscCtrl extends Controller {
           case MessageType.IMAGE =>
             val imageInfo = Json.parse(postMap.get("imageInfo").get)
 
-            val entries = conf.getConfig("qiniu.style").entrySet.toSeq
+            val entries = conf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
+              prop -> conf.getString(s"qiniu.style.$prop").get)
+
             val styleSet = for {
               entry <- entries
             } yield {
-              val prop = entry.getKey
-              val style = entry.getValue
-              prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(style.unwrapped().toString), expire))
+              val (prop, style) = entry
+              prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(style), expire))
             }
             Seq(
               "width" -> JsNumber((imageInfo \ "width").asOpt[Int].get),
@@ -175,8 +172,8 @@ object MiscCtrl extends Controller {
     val key = postMap.get("key").get
 
     // 获得contents内容
-    val conf = playConf.getConfig("hedylogos")
-    val host = conf.getString(s"qiniu.bucket.$bucket")
+    val conf = playConf.getConfig("hedylogos").get
+    val host = conf.getString(s"qiniu.bucket.$bucket").get
     val baseUrl = s"http://$host/$key"
     val styleSeparator = "!"
     val expire = 7 * 24 * 3600
@@ -195,13 +192,14 @@ object MiscCtrl extends Controller {
         def buildUrlFromStyle(style: String): String = baseUrl +
           (if (style.nonEmpty) "%s%s".format(styleSeparator, style) else "")
 
-        val entries = conf.getConfig("qiniu.style").entrySet.toSeq
+        val entries = conf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
+          prop -> conf.getString(s"qiniu.style.$prop").get)
+
         val styleSet = for {
           entry <- entries
         } yield {
-          val prop = entry.getKey
-          val style = entry.getValue
-          prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(style.unwrapped().toString), expire))
+          val (prop, style) = entry
+          prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(style), expire))
         }
 
         JsObject(Seq(

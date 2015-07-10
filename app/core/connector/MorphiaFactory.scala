@@ -1,11 +1,9 @@
 package core.connector
 
-import com.lvxingpai.yunkai.{ ChatGroup, UserInfo }
 import com.mongodb.{ MongoClient, MongoClientOptions, MongoCredential, ServerAddress }
 import core.GlobalConfig
-import core.finagle.CoreConfig
-import models.{ Conversation }
-import org.mongodb.morphia.{ ValidationExtension, Morphia }
+import models.Conversation
+import org.mongodb.morphia.Morphia
 
 import scala.collection.JavaConversions._
 
@@ -22,17 +20,19 @@ object MorphiaFactory {
 
   lazy val client = {
     val conf = GlobalConfig.playConf
-    val dbName = conf.getString("hedylogos.server.mongo.db")
+    val dbName = conf.getString("hedylogos.server.mongo.db").get
 
-    val mongoBackends = conf.getConfig("backends.mongo").entrySet().toSeq
-    val serverAddress = mongoBackends map (backend => {
-      val tmp = backend.getValue.unwrapped().toString.split(":")
-      val host = tmp(0)
-      val port = tmp(1).toInt
-      new ServerAddress(host, port)
+    conf.getConfig("backends.mongo")
+
+    val mongoBackends = conf.getConfig("backends.mongo").get
+    val services = mongoBackends.subKeys.toSeq map (mongoBackends.getConfig(_).get)
+
+    val serverAddress = services map (c => {
+      new ServerAddress(c.getString("host").get, c.getInt("port").get)
     })
-    val user = conf.getString("hedylogos.server.mongo.user")
-    val password = conf.getString("hedylogos.server.mongo.password")
+
+    val user = conf.getString("hedylogos.server.mongo.user").get
+    val password = conf.getString("hedylogos.server.mongo.password").get
     val credential = MongoCredential.createScramSha1Credential(user, dbName, password.toCharArray)
 
     val options = new MongoClientOptions.Builder()
@@ -50,7 +50,7 @@ object MorphiaFactory {
   }
 
   lazy val datastore = {
-    val dbName = GlobalConfig.playConf.getString("hedylogos.server.mongo.db")
+    val dbName = GlobalConfig.playConf.getString("hedylogos.server.mongo.db").get
     val ds = morphia.createDatastore(client, dbName)
     ds.ensureIndexes()
     ds.ensureCaps()
