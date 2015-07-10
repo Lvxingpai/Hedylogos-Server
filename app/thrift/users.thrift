@@ -116,6 +116,10 @@ exception UserExistsException {
   1:optional string message
 }
 
+exception ResourceConflictException {
+  1:optional string message
+}
+
 exception GroupMembersLimitException {
   1:optional string message
 }
@@ -163,6 +167,7 @@ service userservice {
   // 取消好友请求
   void cancelContactRequest(1:string requestId) throws (1:NotFoundException ex)
 
+  // 获得某个用户接收到的好友请求列表，按照时间逆序排列
   list<ContactRequest> getContactRequests(1:i64 userId, 2:optional i32 offset, 3:optional i32 limit) throws (1:NotFoundException ex)
 
   // 添加单个好友
@@ -193,12 +198,12 @@ service userservice {
   // 发送手机验证码
   // 如果发送过于频繁，会出现OverQuotaLimitException
   // 如果参数不合法，比如既不提供tel，又不提供userId，会抛出InvalidArgsException
-  void sendValidationCode(1:OperationCode action, 2:optional i32 countryCode, 3:string tel, 4:optional i64 userId) throws (1:OverQuotaLimitException ex, 2:InvalidArgsException ex2)
+  void sendValidationCode(1:OperationCode action, 2:string tel, 3:optional i32 countryCode) throws (1:OverQuotaLimitException ex, 2:InvalidArgsException ex2)
 
 //   根据fingerprint读取Token
 //  Token fetchToken(1:string fingerprint) throws (1:NotFoundException ex)
 
-  string checkValidationCode(1:string code, 2:OperationCode action, 3:optional i32 countryCode, 4:optional string tel, 5:optional i64 userId) throws (1:ValidationCodeException ex)
+  string checkValidationCode(1:string code, 2:OperationCode action, 3:string tel, 4:optional i32 countryCode) throws (1:ValidationCodeException ex)
 
   // 用户修改密码（如果原先没有密码，则oldPassword可以设置为""）
   // AuthException: 旧密码错误
@@ -209,10 +214,10 @@ service userservice {
   void resetPasswordByToken(1:i64 userId, 2:string newPassword, 3:string token) throws (1:InvalidArgsException ex1, 2:AuthException ex2)
 
   // 修改手机号
-  void updateTelNumber(1:i64 userId, 2:string tel, 3:string token) throws (1:NotFoundException ex1, 2:InvalidArgsException ex2, 3:AuthException ex3)
+  void updateTelNumber(1:i64 userId, 2:string tel, 3:string token) throws (1:NotFoundException ex1, 2:InvalidArgsException ex2, 3:AuthException ex3, 4:ResourceConflictException ex4)
 
   // 新用户注册。支持的UserInfoProp暂时只有tel
-  UserInfo createUser(1:string nickName, 2:string password, 3:optional map<UserInfoProp, string> miscInfo) throws (1: UserExistsException ex1, 2: InvalidArgsException ex2)
+  UserInfo createUser(1:string nickName, 2:string password, 3:optional map<UserInfoProp, string> miscInfo) throws (1:ResourceConflictException ex1, 2: InvalidArgsException ex2)
 
   // 搜索用户(参数1表示根据哪些字段搜索, 参数2表示返回的字段, 参数3表示当前页从第几个开始, 4表示一页返回多少个)
   list<UserInfo> searchUserInfo(1: map<UserInfoProp, string> queryFields, 2: optional list<UserInfoProp> fields, 3: optional i32 offset, 4: optional i32 count)

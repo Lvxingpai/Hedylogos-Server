@@ -44,11 +44,12 @@ object Conversation {
     val result = new Conversation
     val l = Seq(userA, userB).sorted
     result.id = new ObjectId()
-    result.fingerprint = String.format("%d.%d", (l head, l last))
+    result.fingerprint = s"${l.head}.${l.last}"
     result.createTime = System.currentTimeMillis()
     result.updateTime = System.currentTimeMillis()
     result
   }
+
   def apply(objectId: ObjectId, chatGroupId: Long): Conversation = {
     val result = new Conversation
     result.id = objectId
