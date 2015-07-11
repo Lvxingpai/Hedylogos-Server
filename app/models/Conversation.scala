@@ -3,7 +3,7 @@ package models
 import javax.validation.constraints.{ NotNull, Size }
 import java.util.{ List => JList }
 import org.bson.types.ObjectId
-import org.mongodb.morphia.annotations.{Transient, Entity, Indexed}
+import org.mongodb.morphia.annotations.{ Transient, Entity, Indexed }
 
 import scala.beans.BeanProperty
 import scala.language.postfixOps

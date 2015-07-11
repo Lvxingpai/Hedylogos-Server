@@ -1,7 +1,7 @@
 package core.serialization
 
 import com.fasterxml.jackson.core.JsonGenerator
-import com.fasterxml.jackson.databind.{SerializerProvider, JsonSerializer}
+import com.fasterxml.jackson.databind.{ SerializerProvider, JsonSerializer }
 import models.Conversation
 
 /**
@@ -16,4 +16,8 @@ class ConversationSerializer[T <: Conversation] extends JsonSerializer[T] {
 
     gen.writeEndObject()
   }
+}
+
+object ConversationSerializer {
+  def apply[T <: Conversation]() = new ConversationSerializer[T]()
 }
