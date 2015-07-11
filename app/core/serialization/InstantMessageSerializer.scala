@@ -1,4 +1,4 @@
-package core.json
+package core.serialization
 
 import models.Message
 

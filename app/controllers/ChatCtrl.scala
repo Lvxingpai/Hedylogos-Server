@@ -1,9 +1,11 @@
 package controllers
 
+import com.fasterxml.jackson.databind.JsonNode
 import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
-import core.json.MessageFormatter
+import core.serialization.{ InstantMessageSerializer, ObjectMapperFactory }
+import models.Message
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
@@ -64,7 +66,7 @@ object ChatCtrl extends Controller {
           sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
         }
 
-        ret getOrElse Future(Results.UnprocessableEntity)
+        ret getOrElse Future(HedyResults.unprocessable())
       }
   }
 
@@ -77,12 +79,13 @@ object ChatCtrl extends Controller {
       for {
         msgList <- Chat.fetchAndAckMessage(userId, timestamp)
       } yield {
-        val nodes = JsArray(msgList map MessageFormatter.format)
-        Helpers.JsonResponse(data = Some(nodes))
+        val mapper = ObjectMapperFactory().addSerializer(classOf[Message], InstantMessageSerializer[Message]()).build()
+        val data = mapper.valueToTree[JsonNode](msgList)
+        HedyResults(data = Some(data))
       }
     }
 
-    ret getOrElse Future(Helpers.JsonResponse(1))
+    ret getOrElse Future(HedyResults.unprocessable())
   })
 
   def getConversationProperty(uid: Long, cid: String) = Action.async(request => {

@@ -3,7 +3,7 @@ package core.mio
 import com.gexin.rp.sdk.base.impl.{ ListMessage, SingleMessage, Target }
 import com.gexin.rp.sdk.http.IGtPush
 import com.gexin.rp.sdk.template.TransmissionTemplate
-import core.json.MessageFormatter
+import core.serialization.{ InstantMessageSerializer, ObjectMapperFactory }
 import core.{ GlobalConfig, User }
 import models.Message
 import play.api.Logger
@@ -37,7 +37,7 @@ object GetuiService extends MessageDeliever {
     else
       (clientIdList.toSet -- muteTargets).toSeq
 
-    def buildMessage(targets: Seq[String], mute: Boolean, contents: String, abbrev: String) = {
+    def buildGetuiMessage(targets: Seq[String], mute: Boolean, contents: String, abbrev: String) = {
       val template = new TransmissionTemplate
       template.setAppId(gtAppId)
       template.setAppkey(gtAppKey)
@@ -63,12 +63,13 @@ object GetuiService extends MessageDeliever {
       message -> targetList
     }
 
-    val contents = MessageFormatter.formatAddRouteKey(msg, "IM").toString()
-    val notifMessage = buildMessage(notifTargets, mute = false, contents, msg.abbrev)
+    val mapper = ObjectMapperFactory().addSerializer(classOf[Message], InstantMessageSerializer[Message]()).build()
+    val contents = mapper.writeValueAsString(msg)
+    val notifMessage = buildGetuiMessage(notifTargets, mute = false, contents, msg.abbrev)
 
     // 最终需要发送的非mute消息和mute消息
     val totalMessages = notifMessage :: (if (muteTargets nonEmpty)
-      buildMessage(muteTargets, mute = true, contents, msg.abbrev) :: Nil
+      buildGetuiMessage(muteTargets, mute = true, contents, msg.abbrev) :: Nil
     else Nil)
 
     totalMessages foreach (entry => {
