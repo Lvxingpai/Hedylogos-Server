@@ -1,7 +1,7 @@
 package models
 
 import javax.validation.constraints.{ NotNull, Size }
-
+import java.util.{ List => JList }
 import org.bson.types.ObjectId
 import org.mongodb.morphia.annotations.{ Entity, Indexed }
 
@@ -29,11 +29,18 @@ class Conversation extends AbstractEntiry {
   @BeanProperty
   @NotNull
   var updateTime: Long = 0
+
+  /**
+   * 消息免打扰机制。这个list保存了那些设置消息免打扰的用户的ID
+   */
+  @BeanProperty
+  var muteNotif: JList[Long] = null
 }
 
 object Conversation {
-  val fdParticipants = "participants"
+  //  val fdParticipants = "participants"
   val fdFingerprint = "fingerprint"
+  val fdMuteNotif = "muteNotif"
   val fdId = "id"
 
   def apply(userA: Long, userB: Long): Conversation = {

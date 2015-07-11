@@ -3,21 +3,27 @@
 # ~~~~
 
 # Home page
-GET         /                              controllers.Application.index
+GET         /                                                        controllers.Application.index
 
-GET         /version                       controllers.UserCtrl.version
+GET         /version                                                 controllers.UserCtrl.version
 
-POST        /users/login                   controllers.UserCtrl.login
+# PUT /users/100028/conversations/558ba2a124aa9a0001f6dafe
+PUT         /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.updateConversationProperty(uid:Long, cid:String)
 
-POST        /users/logout                  controllers.UserCtrl.logout
+GET         /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.getConversationProperty(uid:Long, cid:String)
 
-POST        /users/$uid<\d+>/messages      controllers.ChatCtrl.fetchMessages(uid: Long)
+POST        /users/login                                             controllers.UserCtrl.login
 
-POST        /upload/token-generator        controllers.MiscCtrl.uploadToken
+POST        /users/logout                                            controllers.UserCtrl.logout
 
-POST        /misc/qiniu-callback           controllers.MiscCtrl.qiniuCallback
+POST        /users/$uid<\d+>/messages                                controllers.ChatCtrl.fetchMessages(uid: Long)
 
-POST        /chats                         controllers.ChatCtrl.sendMessage
+POST        /upload/token-generator                                  controllers.MiscCtrl.uploadToken
+
+POST        /misc/qiniu-callback                                     controllers.MiscCtrl.qiniuCallback
+
+POST        /chats                                                   controllers.ChatCtrl.sendMessage
+
 
 #GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 

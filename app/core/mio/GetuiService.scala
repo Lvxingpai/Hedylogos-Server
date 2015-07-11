@@ -27,60 +27,84 @@ object GetuiService extends MessageDeliever {
   val gtAppKey = conf.getString("getui.appKey").get
   val gtPush = new IGtPush(host, gtAppKey, master)
 
-  private def sendTransmission(msg: Message, clientIdList: Seq[String]): Unit = {
+  private def sendTransmission(msg: Message, clientIdList: Seq[String], muteTargets: Seq[String] = Seq()): Unit = {
     if (clientIdList isEmpty)
       return
 
-    val template = new TransmissionTemplate
-    template.setAppId(gtAppId)
-    template.setAppkey(gtAppKey)
-    template.setTransmissionType(2)
-    template.setTransmissionContent(MessageFormatter.formatAddRouteKey(msg, "IM").toString())
+    // 需要APNS通知的用户
+    val notifTargets = if (muteTargets isEmpty)
+      clientIdList
+    else
+      (clientIdList.toSet -- muteTargets).toSeq
 
-    if (msg.abbrev != null && msg.abbrev.nonEmpty)
-      template.setPushInfo("", 1, msg.abbrev, "default", "", "", "", "")
+    def buildMessage(targets: Seq[String], mute: Boolean, contents: String, abbrev: String) = {
+      val template = new TransmissionTemplate
+      template.setAppId(gtAppId)
+      template.setAppkey(gtAppKey)
+      template.setTransmissionType(2)
+      template.setTransmissionContent(contents)
 
-    val targetList = clientIdList.map(cid => {
-      val target = new Target
-      target.setAppId(gtAppId)
-      target.setClientId(cid)
-      target
-    })
+      if (!mute && abbrev != null && abbrev.nonEmpty)
+        template.setPushInfo("", 1, abbrev, "default", "", "", "", "")
 
-    val isSingle = targetList.size == 1
-    val message = if (isSingle) new SingleMessage else new ListMessage
-    message.setData(template)
-    message.setOffline(true)
-    message.setOfflineExpireTime(3600 * 1000L)
+      val targetList = targets.map(cid => {
+        val target = new Target
+        target.setAppId(gtAppId)
+        target.setClientId(cid)
+        target
+      })
 
-    val pushResult = if (isSingle) gtPush.pushMessageToSingle(message.asInstanceOf[SingleMessage], targetList(0))
-    else {
-      val contentId = gtPush.getContentId(message.asInstanceOf[ListMessage])
-      gtPush.pushMessageToList(contentId, targetList)
+      val isSingle = targetList.size == 1
+      val message = if (isSingle) new SingleMessage else new ListMessage
+      message.setData(template)
+      message.setOffline(true)
+      message.setOfflineExpireTime(3600 * 1000L)
+
+      message -> targetList
     }
-    Logger.debug("Push result: target=%s, %s".format(clientIdList mkString ",", pushResult.getResponse.toString))
+
+    val contents = MessageFormatter.formatAddRouteKey(msg, "IM").toString()
+    val notifMessage = buildMessage(notifTargets, mute = false, contents, msg.abbrev)
+
+    // 最终需要发送的非mute消息和mute消息
+    val totalMessages = notifMessage :: (if (muteTargets nonEmpty)
+      buildMessage(muteTargets, mute = true, contents, msg.abbrev) :: Nil
+    else Nil)
+
+    totalMessages foreach (entry => {
+      val targets = entry._2
+      val pushResult = entry._1 match {
+        case message: SingleMessage => gtPush.pushMessageToSingle(message, targets.head)
+        case message: ListMessage =>
+          val contentId = gtPush.getContentId(message)
+          gtPush.pushMessageToList(contentId, targets)
+      }
+      Logger.debug("Push result: target=%s, %s".format(clientIdList mkString ",", pushResult.getResponse.toString))
+    })
   }
 
-  override def sendMessage(message: Message, targets: Seq[Long]): Future[Message] = {
+  def sendMesageWithMute(message: Message, allTargets: Seq[Long], mutedTargets: Seq[Long] = Seq()): Future[Message] = {
     // 将targets中的userId取出来，读取regId（类型：Seq[String]）
-    def userId2regId(userId: Long): Future[Option[String]] = {
+    def userId2regId(userId: Long): Future[Option[(Long, String)]] = {
       for {
         optionMap <- User.loginInfo(userId)
       } yield for {
         m <- optionMap
         regId <- m.get("regId")
-      } yield regId.toString
+      } yield userId -> regId.toString
     }
 
-    val regIdList = for {
-      values <- Future.sequence(targets.map(userId2regId)) // Future[Seq[Option[String]]]
-    } yield for {
-      opt <- values if opt.nonEmpty
-    } yield opt.get
-
-    regIdList.map(targets => {
-      sendTransmission(message, targets)
+    for {
+      ret <- Future.sequence(allTargets map userId2regId)
+    } yield {
+      // 建立完整的 userId -> clientId 映射
+      val clientIdMap = Map(ret filter (_.nonEmpty) map (_.get): _*)
+      val targets = allTargets map (clientIdMap(_))
+      val muted = mutedTargets map (clientIdMap(_))
+      sendTransmission(message, targets, muted)
       message
-    })
+    }
   }
+
+  override def sendMessage(message: Message, targets: Seq[Long]): Future[Message] = sendMesageWithMute(message, targets)
 }

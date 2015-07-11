@@ -4,10 +4,12 @@ import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
 import core.json.MessageFormatter
+import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
 
+import scala.collection.Map
 import scala.concurrent.Future
 import scala.language.postfixOps
 
@@ -27,6 +29,21 @@ object ChatCtrl extends Controller {
       ))
       Helpers.JsonResponse(data = Some(result))
     })
+  }
+
+  @WithAccessLog
+  def updateConversationProperty(uid: Long, cid: String) = Action.async {
+    request =>
+      {
+        val result = for {
+          body <- request.body.asJson
+        } yield {
+          val muteOpt = (body \ "mute").asOpt[Boolean]
+          val settings = Map("mute" -> muteOpt).filter(_._2 nonEmpty).mapValues(_.get)
+          Chat.opConversationProperty(uid, new ObjectId(cid), settings) map (_ => Helpers.JsonResponse())
+        }
+        result getOrElse Future(Results.BadRequest)
+      }
   }
 
   @WithAccessLog
@@ -61,5 +78,15 @@ object ChatCtrl extends Controller {
     }
 
     ret getOrElse Future(Helpers.JsonResponse(1))
+  })
+
+  def getConversationProperty(uid: Long, cid: String) = Action.async(request => {
+    for {
+      conv <- Chat.getConversation(new ObjectId(cid))
+    } yield {
+      val isMuted = Option(conv.muteNotif) exists (_ contains uid)
+      val node = JsObject(Seq("muted" -> JsBoolean(isMuted)))
+      Helpers.JsonResponse(data = Some(node))
+    }
   })
 }
