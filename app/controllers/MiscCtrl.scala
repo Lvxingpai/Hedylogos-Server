@@ -1,5 +1,6 @@
 package controllers
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import core.GlobalConfig
 import core.GlobalConfig.playConf
 import core.aspectj.WithAccessLog
@@ -25,8 +26,9 @@ object MiscCtrl extends Controller {
         implicit val playConf = GlobalConfig.playConf.getConfig("hedylogos")
 
         val token = sendMessageToken(key = key, msgType = msgType)
-        val result = JsObject(Seq("key" -> JsString(key), "token" -> JsString(token)))
-        Helpers.JsonResponse(data = Some(result))
+
+        val node = new ObjectMapper().createObjectNode() put ("key", key) put ("token", token)
+        HedyResults(data = Some(node))
       }
   }
 

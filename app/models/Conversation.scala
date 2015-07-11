@@ -3,7 +3,7 @@ package models
 import javax.validation.constraints.{ NotNull, Size }
 import java.util.{ List => JList }
 import org.bson.types.ObjectId
-import org.mongodb.morphia.annotations.{ Entity, Indexed }
+import org.mongodb.morphia.annotations.{ Transient, Entity, Indexed }
 
 import scala.beans.BeanProperty
 import scala.language.postfixOps
@@ -35,6 +35,18 @@ class Conversation extends AbstractEntiry {
    */
   @BeanProperty
   var muteNotif: JList[Long] = null
+
+  /**
+   * 是否免打扰。注意：这个值不会保存在数据库中，而是通过muteNotif计算而来。以不同的用户视角观察这个值，结果是不同的。
+   */
+  @Transient
+  var muted: Boolean = false
+
+  /**
+   * 是否置顶。和muted字段类似
+   */
+  @Transient
+  var pinned: Boolean = false
 }
 
 object Conversation {

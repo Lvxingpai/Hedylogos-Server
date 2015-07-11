@@ -1,4 +1,4 @@
-package core.json
+package core.serialization
 
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.{ JsonSerializer, SerializerProvider }
@@ -35,4 +35,8 @@ class MessageSerializer[T <: Message](val routingKey: String) extends JsonSerial
 
     gen.writeEndObject()
   }
+}
+
+object MessageSerializer {
+  def apply[T <: Message](routingKey: String) = new MessageSerializer[T](routingKey)
 }
