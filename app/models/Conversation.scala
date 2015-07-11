@@ -30,6 +30,9 @@ class Conversation extends AbstractEntiry {
   @NotNull
   var updateTime: Long = 0
 
+  /**
+   * 消息免打扰机制。这个list保存了那些设置消息免打扰的用户的ID
+   */
   @BeanProperty
   var muteNotif: JList[Long] = null
 }

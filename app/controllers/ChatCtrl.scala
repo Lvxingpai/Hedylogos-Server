@@ -1,17 +1,18 @@
 package controllers
 
 import core.Chat
+import core.Implicits._
 import core.aspectj.WithAccessLog
 import core.json.MessageFormatter
+import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
-import core.Implicits._
-import org.bson.types.ObjectId
 
+import scala.collection.Map
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.collection.Map
+
 /**
  * Created by zephyre on 4/23/15.
  */
@@ -77,5 +78,15 @@ object ChatCtrl extends Controller {
     }
 
     ret getOrElse Future(Helpers.JsonResponse(1))
+  })
+
+  def getConversationProperty(uid: Long, cid: String) = Action.async(request => {
+    for {
+      conv <- Chat.getConversation(new ObjectId(cid))
+    } yield {
+      val isMuted = Option(conv.muteNotif) exists (_ contains uid)
+      val node = JsObject(Seq("muted" -> JsBoolean(isMuted)))
+      Helpers.JsonResponse(data = Some(node))
+    }
   })
 }
