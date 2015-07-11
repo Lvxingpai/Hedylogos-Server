@@ -36,3 +36,7 @@ class MessageSerializer[T <: Message](val routingKey: String) extends JsonSerial
     gen.writeEndObject()
   }
 }
+
+object MessageSerializer {
+  def apply[T <: Message](routingKey: String) = new MessageSerializer[T](routingKey)
+}
