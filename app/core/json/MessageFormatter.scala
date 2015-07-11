@@ -18,8 +18,6 @@ object MessageFormatter extends JsonFormatter {
       "conversation" -> JsString(msg.getConversation.toString),
       "contents" -> JsString(msg.getContents),
       "senderId" -> JsNumber(msg.getSenderId.toLong),
-      //      "senderAvatar" -> JsString(""),
-      //      "senderName" -> JsString("测试用户"),
       "timestamp" -> JsNumber(msg.getTimestamp.toLong))
     val content = if (msg.getChatType != null && msg.getChatType.equals("group"))
       stContent ++ Seq("groupId" -> JsNumber(msg.getReceiverId.toLong))
