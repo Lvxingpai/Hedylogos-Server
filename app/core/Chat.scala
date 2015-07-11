@@ -13,10 +13,10 @@ import org.bson.types.ObjectId
 import org.mongodb.morphia.query.UpdateOperations
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
-import scala.collection.JavaConversions._
 import scala.collection.Map
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.collection.JavaConversions._
 
 /**
  * Created by zephyre on 4/20/15.
@@ -115,7 +115,7 @@ object Chat {
    *
    * @return
    */
-  def sendMessageToConv(msg: Message, conversation: Conversation): Future[Message] = {
+  def sendMessageToConv(msg: Message, conversation: Conversation, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
     val chatType: ChatType.Value = msg.chatType
     val receiver = msg.receiverId
     val sender = msg.senderId
@@ -123,11 +123,8 @@ object Chat {
     val futureTargets = chatType match {
       case item if item.id == ChatType.SINGLE.id => Future(Set(receiver))
       case item if item.id == ChatType.CHATGROUP.id =>
-        FinagleCore.getChatGroup(receiver) map (cg => {
-          val members = cg.participants
-          // 最终的接收者为：
-          members filter (_ != sender) toSet
-        })
+        FinagleCore.getChatGroup(receiver) map (cg =>
+          (cg.participants filter (_ != sender)).toSet ++ includes -- excludes)
     }
 
     // 设置了消息免打扰的用户
@@ -202,11 +199,14 @@ object Chat {
    * @param chatType 消息类型：单聊和群聊这两种
    * @return
    */
-  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] = {
-    val conversation = chatType match {
-      case item if item.id == ChatType.SINGLE.id => Chat.getSingleConversation(sender, receiver)
-      case item if item.id == ChatType.CHATGROUP.id => Chat.getChatGroupConversation(receiver)
-    }
+  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
+    // 是否为单聊
+    val isSingleChat = chatType == ChatType.SINGLE
+
+    val conversation = if (isSingleChat)
+      Chat.getSingleConversation(sender, receiver)
+    else
+      Chat.getChatGroupConversation(receiver)
 
     for {
       conv <- conversation
@@ -214,7 +214,12 @@ object Chat {
       abbrev <- buildMessageAbbrev(msg)
       ret <- {
         msg.abbrev = abbrev.orNull
-        sendMessageToConv(msg, conv)
+
+        // 如果是单聊的情况，不要启用includes/和excludes机制
+        if (isSingleChat)
+          sendMessageToConv(msg, conv, Seq(), Seq())
+        else
+          sendMessageToConv(msg, conv, includes, excludes)
       }
     } yield ret
   }
