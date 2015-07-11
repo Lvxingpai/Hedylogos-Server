@@ -3,6 +3,7 @@ package core.json
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.databind.{ SerializerProvider, JsonSerializer, ObjectMapper }
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import models.AbstractEntiry
 import org.bson.types.ObjectId
 
@@ -12,6 +13,7 @@ import org.bson.types.ObjectId
 class ObjectMapperFactory {
   private val mapper = new ObjectMapper()
   private val module = new SimpleModule()
+  mapper.registerModule(DefaultScalaModule)
   module.addSerializer(classOf[ObjectId], new ObjectIdSerializer())
 
   /**
