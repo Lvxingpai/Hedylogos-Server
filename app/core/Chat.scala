@@ -3,6 +3,7 @@ package core
 import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
+
 import core.connector.{ HedyRedis, MorphiaFactory }
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
@@ -10,10 +11,12 @@ import misc.FinagleFactory
 import models.Message.{ ChatType, MessageType }
 import models._
 import org.bson.types.ObjectId
+import org.mongodb.morphia.query.UpdateOperations
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.collection.Map
 
 /**
  * Created by zephyre on 4/20/15.
@@ -219,5 +222,32 @@ object Chat {
   def fetchAndAckMessage(userId: Long, purgeBefore: Long): Future[Seq[Message]] = {
     RedisMessaging.removeMessages(userId, purgeBefore)
     RedisMessaging.fetchMessages(userId, purgeBefore)
+  }
+
+  def opConversationProperty(uid: Long, cid: ObjectId, settings: Map[String, Boolean]): Future[Unit] = {
+    val ret = settings.toSeq map (item => item._1 match {
+      case "mute" => opMuteNotif(uid, cid, item._2)
+    })
+
+    Future.sequence(ret) map (_ => ())
+  }
+
+  /**
+   * 设置/取消消息免打扰
+   * @param userId
+   * @param convId
+   * @param mute true为免打扰, false为取消免打扰
+   * @return
+   */
+  def opMuteNotif(userId: Long, convId: ObjectId, mute: Boolean): Future[Unit] = {
+    val query = ds.find(classOf[Conversation], Conversation.fdId, convId)
+    var updateOps: UpdateOperations[Conversation] = null
+    mute match {
+      case true => updateOps = ds.createUpdateOperations(classOf[Conversation]).add(Conversation.fdMuteNotif, userId, false)
+      case false => updateOps = ds.createUpdateOperations(classOf[Conversation]).removeAll(Conversation.fdMuteNotif, userId)
+    }
+    Future {
+      ds.updateFirst(query, updateOps)
+    }
   }
 }

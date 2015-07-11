@@ -1,16 +1,17 @@
 package controllers
 
 import core.Chat
-import core.Implicits._
 import core.aspectj.WithAccessLog
 import core.json.MessageFormatter
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
+import core.Implicits._
+import org.bson.types.ObjectId
 
 import scala.concurrent.Future
 import scala.language.postfixOps
-
+import scala.collection.Map
 /**
  * Created by zephyre on 4/23/15.
  */
@@ -27,6 +28,21 @@ object ChatCtrl extends Controller {
       ))
       Helpers.JsonResponse(data = Some(result))
     })
+  }
+
+  @WithAccessLog
+  def updateConversationProperty(uid: Long, cid: String) = Action.async {
+    request =>
+      {
+        val result = for {
+          body <- request.body.asJson
+        } yield {
+          val muteOpt = (body \ "mute").asOpt[Boolean]
+          val settings = Map("mute" -> muteOpt).filter(_._2 nonEmpty).mapValues(_.get)
+          Chat.opConversationProperty(uid, new ObjectId(cid), settings) map (_ => Helpers.JsonResponse())
+        }
+        result getOrElse Future(Results.BadRequest)
+      }
   }
 
   @WithAccessLog
