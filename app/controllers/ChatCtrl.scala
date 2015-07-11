@@ -19,8 +19,8 @@ object ChatCtrl extends Controller {
 
   case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
 
-  def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String): Future[Result] = {
-    Chat.sendMessage(msgType, contents, receiver, sender, chatType) map (msg => {
+  def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String, includes: Seq[Long] = null, excludes: Seq[Long] = null): Future[Result] = {
+    Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes) map (msg => {
       val result = JsObject(Seq(
         "conversation" -> JsString(msg.getConversation.toString),
         "msgId" -> JsNumber(msg.getMsgId),
@@ -56,7 +56,9 @@ object ChatCtrl extends Controller {
           chatType <- (jsonNode \ "chatType").asOpt[String]
           msgType <- (jsonNode \ "msgType").asOpt[Int]
           contents <- (jsonNode \ "contents").asOpt[String]
-        } yield sendMessageBase(msgType, contents, receiverId, senderId, chatType)
+          includes <- (jsonNode \ "includes").asOpt[Seq[Long]]
+          excludes <- (jsonNode \ "excludes").asOpt[Seq[Long]]
+        } yield sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
 
         ret getOrElse Future(Results.UnprocessableEntity)
       }

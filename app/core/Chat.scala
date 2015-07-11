@@ -14,6 +14,7 @@ import org.bson.types.ObjectId
 import org.mongodb.morphia.query.UpdateOperations
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.collection.Map
@@ -115,7 +116,7 @@ object Chat {
    *
    * @return
    */
-  def sendMessageToConv(msg: Message): Future[Message] = {
+  def sendMessageToConv(msg: Message, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
     val chatType: ChatType.Value = msg.chatType
     val receiver = msg.receiverId
     val sender = msg.senderId
@@ -124,8 +125,12 @@ object Chat {
       case item if item.id == ChatType.SINGLE.id => Future(Seq(receiver))
       case item if item.id == ChatType.CHATGROUP.id =>
         FinagleCore.getChatGroup(receiver) map (cg => {
-          val members = cg.participants
-          Set(members filter (_ != sender): _*).toSeq
+          val members = ArrayBuffer[Long]()
+          members ++= cg.participants
+          val membersFilter = members filter (_ != sender)
+          membersFilter ++= includes
+          membersFilter --= excludes
+          Set(membersFilter: _*).toSeq
         })
     }
 
@@ -202,7 +207,7 @@ object Chat {
    * @param chatType 消息类型：单聊和群聊这两种
    * @return
    */
-  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] = {
+  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
     val conversation = chatType match {
       case item if item.id == ChatType.SINGLE.id => Chat.getSingleConversation(sender, receiver)
       case item if item.id == ChatType.CHATGROUP.id => Chat.getChatGroupConversation(receiver)
@@ -214,7 +219,7 @@ object Chat {
       abbrev <- buildMessageAbbrev(msg)
       ret <- {
         msg.abbrev = abbrev.orNull
-        sendMessageToConv(msg)
+        sendMessageToConv(msg, includes, excludes)
       }
     } yield ret
   }
