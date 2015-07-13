@@ -1,17 +1,20 @@
 package controllers
 
+import com.fasterxml.jackson.databind.{ ObjectMapper, JsonNode }
 import core.Chat
+import core.Implicits._
 import core.aspectj.WithAccessLog
-import core.json.MessageFormatter
+import core.serialization.{ ConversationSerializer, InstantMessageSerializer, ObjectMapperFactory }
+import models.{ Conversation, Message }
+import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
-import core.Implicits._
-import org.bson.types.ObjectId
 
+import scala.collection.Map
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.collection.Map
+
 /**
  * Created by zephyre on 4/23/15.
  */
@@ -26,7 +29,11 @@ object ChatCtrl extends Controller {
         "msgId" -> JsNumber(msg.getMsgId),
         "timestamp" -> JsNumber(msg.getTimestamp)
       ))
-      Helpers.JsonResponse(data = Some(result))
+      val mapper = new ObjectMapper()
+      val node = mapper.createObjectNode()
+      node put ("conversation", msg.conversation.toString) put ("msgId", msg.msgId) put ("timestamp", msg.timestamp)
+
+      HedyResults(data = Some(node))
     })
   }
 
@@ -39,7 +46,7 @@ object ChatCtrl extends Controller {
         } yield {
           val muteOpt = (body \ "mute").asOpt[Boolean]
           val settings = Map("mute" -> muteOpt).filter(_._2 nonEmpty).mapValues(_.get)
-          Chat.opConversationProperty(uid, new ObjectId(cid), settings) map (_ => Helpers.JsonResponse())
+          Chat.opConversationProperty(uid, new ObjectId(cid), settings) map (_ => HedyResults())
         }
         result getOrElse Future(Results.BadRequest)
       }
@@ -63,7 +70,7 @@ object ChatCtrl extends Controller {
           sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
         }
 
-        ret getOrElse Future(Results.UnprocessableEntity)
+        ret getOrElse Future(HedyResults.unprocessable())
       }
   }
 
@@ -76,11 +83,22 @@ object ChatCtrl extends Controller {
       for {
         msgList <- Chat.fetchAndAckMessage(userId, timestamp)
       } yield {
-        val nodes = JsArray(msgList map MessageFormatter.format)
-        Helpers.JsonResponse(data = Some(nodes))
+        val mapper = ObjectMapperFactory().addSerializer(classOf[Message], InstantMessageSerializer[Message]()).build()
+        val data = mapper.valueToTree[JsonNode](msgList)
+        HedyResults(data = Some(data))
       }
     }
 
-    ret getOrElse Future(Helpers.JsonResponse(1))
+    ret getOrElse Future(HedyResults.unprocessable())
+  })
+
+  def getConversationProperty(uid: Long, cid: String) = Action.async(request => {
+    for {
+      conv <- Chat.getConversation(new ObjectId(cid))
+    } yield {
+      val mapper = ObjectMapperFactory().addSerializer(classOf[Conversation], ConversationSerializer[Conversation]()).build()
+      val node = mapper.valueToTree[JsonNode](conv)
+      HedyResults(data = Some(node))
+    }
   })
 }

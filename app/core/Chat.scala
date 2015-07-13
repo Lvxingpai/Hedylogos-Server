@@ -16,6 +16,7 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import scala.collection.Map
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.collection.JavaConversions._
 
 /**
  * Created by zephyre on 4/20/15.
@@ -114,31 +115,30 @@ object Chat {
    *
    * @return
    */
-  def sendMessageToConv(msg: Message, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
+  def sendMessageToConv(msg: Message, conversation: Conversation, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
     val chatType: ChatType.Value = msg.chatType
     val receiver = msg.receiverId
     val sender = msg.senderId
 
     val futureTargets = chatType match {
-      case item if item.id == ChatType.SINGLE.id => Future(Seq(receiver))
+      case item if item.id == ChatType.SINGLE.id => Future(Set(receiver))
       case item if item.id == ChatType.CHATGROUP.id =>
         FinagleCore.getChatGroup(receiver) map (cg =>
-          ((cg.participants filter (_ != sender)).toSet ++ includes -- excludes).toSeq)
+          (cg.participants filter (_ != sender)).toSet ++ includes -- excludes)
     }
 
-    val mongoResult = for {
-      targets <- futureTargets
-      result <- MongoStorage.sendMessage(msg, targets)
-    } yield result
+    // 设置了消息免打扰的用户
+    val futureMuted = futureTargets map (members => {
+      Option(conversation.muteNotif) map (_.toSeq) getOrElse Seq() filter members.contains
+    })
 
     for {
       targets <- futureTargets
-      msg <- mongoResult
-      redisResult <- RedisMessaging.sendMessage(msg, targets)
-      getuiResult <- GetuiService.sendMessage(redisResult, targets)
-    } yield getuiResult
-
-    mongoResult
+      muted <- futureMuted
+      msg <- MongoStorage.sendMessage(msg, targets.toSeq)
+      redisResult <- RedisMessaging.sendMessage(msg, targets.toSeq)
+      _ <- GetuiService.sendMesageWithMute(redisResult, targets.toSeq, muted)
+    } yield msg
   }
 
   /**
@@ -209,17 +209,17 @@ object Chat {
       Chat.getChatGroupConversation(receiver)
 
     for {
-      c <- conversation
-      msg <- buildMessage(msgType, contents, c.id, receiver, sender, chatType)
+      conv <- conversation
+      msg <- buildMessage(msgType, contents, conv.id, receiver, sender, chatType)
       abbrev <- buildMessageAbbrev(msg)
       ret <- {
         msg.abbrev = abbrev.orNull
 
         // 如果是单聊的情况，不要启用includes/和excludes机制
         if (isSingleChat)
-          sendMessageToConv(msg, Seq(), Seq())
+          sendMessageToConv(msg, conv, Seq(), Seq())
         else
-          sendMessageToConv(msg, includes, excludes)
+          sendMessageToConv(msg, conv, includes, excludes)
       }
     } yield ret
   }
@@ -236,6 +236,9 @@ object Chat {
 
     Future.sequence(ret) map (_ => ())
   }
+
+  def getConversation(cid: ObjectId): Future[Conversation] =
+    Future(ds.find(classOf[Conversation], Conversation.fdId, cid).get)
 
   /**
    * 设置/取消消息免打扰

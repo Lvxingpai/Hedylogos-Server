@@ -3,7 +3,6 @@ package controllers
 import core.User
 import core.aspectj.WithAccessLog
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json.{ JsNumber, JsObject, JsString }
 import play.api.mvc.{ Action, Controller }
 
 import scala.concurrent.Future
@@ -19,7 +18,7 @@ object UserCtrl extends Controller {
         val jsonNode = request.body.asJson.get
         val userId = (jsonNode \ "userId").asOpt[Long].get
         val regId = (jsonNode \ "regId").asOpt[String].get
-        User.login(userId, regId).map(v => Helpers.JsonResponse())
+        User.login(userId, regId).map(v => HedyResults())
       }
   }
 
@@ -29,17 +28,12 @@ object UserCtrl extends Controller {
       {
         val jsonNode = request.body.asJson.get
         val userId = (jsonNode \ "userId").asOpt[Long].get
-        User.logout(userId).map(v => Helpers.JsonResponse())
+        User.logout(userId).map(v => HedyResults())
       }
   }
 
   @WithAccessLog
-  def version() = Action.async(request => {
-    val result = JsObject(Seq(
-      "message" -> JsString("HELLO"),
-      "timestamp" -> JsNumber(System.currentTimeMillis)
-    ))
-
-    Future(Helpers.JsonResponse(data = Some(result)))
-  })
+  def version() = Action.async {
+    Future(HedyResults())
+  }
 }
