@@ -100,8 +100,9 @@ object GetuiService extends MessageDeliever {
     } yield {
       // 建立完整的 userId -> clientId 映射
       val clientIdMap = Map(ret filter (_.nonEmpty) map (_.get): _*)
-      val targets = allTargets map (clientIdMap(_))
-      val muted = mutedTargets map (clientIdMap(_))
+      // 这里之所以filter一下，是因为有些userId找不到对应的个推clientId，需要处理这样的情况
+      val targets = allTargets filter (clientIdMap contains) map (clientIdMap(_))
+      val muted = mutedTargets filter (clientIdMap contains) map (clientIdMap(_))
       sendTransmission(message, targets, muted)
       message
     }
