@@ -17,6 +17,7 @@ object MongoStorage extends MessageDeliever {
 
   override def sendMessage(message: Message, target: Seq[Long]): Future[Message] = {
     Future {
+      message.targets = target
       ds.save[Message](message)
     } map (_ => message)
   }
