@@ -48,6 +48,9 @@ class Message extends AbstractEntiry {
 
   @BeanProperty
   var timestamp: Long = 0
+
+  @BeanProperty
+  var targets: java.util.List[Long] = null
 }
 
 object Message {

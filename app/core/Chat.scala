@@ -127,6 +127,13 @@ object Chat {
           (cg.participants filter (_ != sender)).toSet ++ includes -- excludes)
     }
 
+    val allMembers = chatType match {
+      case item if item.id == ChatType.SINGLE.id => Future(Seq(sender, receiver))
+      case item if item.id == ChatType.CHATGROUP.id =>
+        FinagleCore.getChatGroup(receiver) map (cg =>
+          ((cg.participants).toSet ++ includes -- excludes).toSeq)
+    }
+
     // 设置了消息免打扰的用户
     val futureMuted = futureTargets map (members => {
       Option(conversation.muteNotif) map (_.toSeq) getOrElse Seq() filter members.contains
@@ -135,10 +142,11 @@ object Chat {
     for {
       targets <- futureTargets
       muted <- futureMuted
-      msg <- MongoStorage.sendMessage(msg, targets.toSeq)
-      redisResult <- RedisMessaging.sendMessage(msg, targets.toSeq)
+      members <- allMembers
+      msg1 <- MongoStorage.sendMessage(msg, members)
+      redisResult <- RedisMessaging.sendMessage(msg1, targets.toSeq)
       _ <- GetuiService.sendMesageWithMute(redisResult, targets.toSeq, muted)
-    } yield msg
+    } yield msg1
   }
 
   /**
