@@ -20,6 +20,7 @@ class MessageSerializer[T <: Message](val routingKey: String) extends JsonSerial
     gen.writeStringField("id", message.id.toString)
     gen.writeStringField("chatType", message.chatType)
     gen.writeNumberField("msgId", message.msgId)
+    gen.writeNumberField("msgType", message.msgType)
     gen.writeStringField("conversation", message.conversation.toString)
     gen.writeStringField("contents", message.contents.toString)
     gen.writeNumberField("senderId", message.senderId)
