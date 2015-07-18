@@ -27,7 +27,7 @@ class MessageSerializer[T <: Message](val routingKey: String) extends JsonSerial
     gen.writeStringField("conversation", message.conversation.toString)
     gen.writeStringField("contents", message.contents.toString)
     gen.writeNumberField("senderId", message.senderId)
-    gen.writeStringField("chatType", message.chatType)
+    gen.writeStringField("abbrev", Option(message.abbrev) getOrElse "")
     gen.writeNumberField("timestamp", message.timestamp)
 
     if (message.chatType == "group")
