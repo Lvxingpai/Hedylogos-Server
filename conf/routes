@@ -3,26 +3,26 @@
 # ~~~~
 
 # Home page
-GET         /                                                        controllers.Application.index
+GET          /                                                        controllers.Application.index
 
-GET         /version                                                 controllers.UserCtrl.version
+GET          /version                                                 controllers.UserCtrl.version
 
 # PUT /users/100028/conversations/558ba2a124aa9a0001f6dafe
-PUT         /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.updateConversationProperty(uid:Long, cid:String)
+PATCH        /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.updateConversationProperty(uid:Long, cid:String)
 
-GET         /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.getConversationProperty(uid:Long, cid:String)
+GET          /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.getConversationProperty(uid:Long, cid:String)
 
-POST        /users/login                                             controllers.UserCtrl.login
+POST         /users/login                                             controllers.UserCtrl.login
 
-POST        /users/logout                                            controllers.UserCtrl.logout
+POST         /users/logout                                            controllers.UserCtrl.logout
 
-POST        /users/$uid<\d+>/messages                                controllers.ChatCtrl.fetchMessages(uid: Long)
+POST         /users/$uid<\d+>/messages                                controllers.ChatCtrl.fetchMessages(uid: Long)
 
-POST        /upload/token-generator                                  controllers.MiscCtrl.uploadToken
+POST         /upload/token-generator                                  controllers.MiscCtrl.uploadToken
 
-POST        /misc/qiniu-callback                                     controllers.MiscCtrl.qiniuCallback
+POST         /misc/qiniu-callback                                     controllers.MiscCtrl.qiniuCallback
 
-POST        /chats                                                   controllers.ChatCtrl.sendMessage
+POST         /chats                                                   controllers.ChatCtrl.sendMessage
 
 
 #GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
