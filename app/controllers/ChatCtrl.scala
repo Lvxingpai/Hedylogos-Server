@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.{ ObjectMapper, JsonNode }
 import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
-import core.serialization.{ ConversationSerializer, InstantMessageSerializer, ObjectMapperFactory }
+import core.serialization.{ MessageSerializer, ConversationSerializer, InstantMessageSerializer, ObjectMapperFactory }
 import models.{ Conversation, Message }
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -83,7 +83,7 @@ object ChatCtrl extends Controller {
       for {
         msgList <- Chat.fetchAndAckMessage(userId, timestamp)
       } yield {
-        val mapper = ObjectMapperFactory().addSerializer(classOf[Message], InstantMessageSerializer[Message]()).build()
+        val mapper = ObjectMapperFactory().addSerializer(classOf[Message], MessageSerializer[Message]()).build()
         val data = mapper.valueToTree[JsonNode](msgList)
         HedyResults(data = Some(data))
       }

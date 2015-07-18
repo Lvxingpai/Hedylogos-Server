@@ -3,6 +3,7 @@ package core.serialization
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.{ JsonSerializer, SerializerProvider }
 import models.Message
+import scala.language.postfixOps
 
 /**
  * Message对象对应的Json serializer
@@ -13,9 +14,11 @@ class MessageSerializer[T <: Message](val routingKey: String) extends JsonSerial
   override def serialize(message: T, gen: JsonGenerator, serializers: SerializerProvider): Unit = {
     gen.writeStartObject()
 
-    gen.writeStringField("routingKey", routingKey)
-
-    gen.writeObjectFieldStart("message")
+    // 可以不启用routingKey机制
+    if (routingKey nonEmpty) {
+      gen.writeStringField("routingKey", routingKey)
+      gen.writeObjectFieldStart("message")
+    }
 
     gen.writeStringField("id", message.id.toString)
     gen.writeStringField("chatType", message.chatType)
@@ -32,12 +35,13 @@ class MessageSerializer[T <: Message](val routingKey: String) extends JsonSerial
     else
       gen.writeNumberField("receiverId", message.receiverId)
 
-    gen.writeEndObject()
+    if (routingKey nonEmpty)
+      gen.writeEndObject()
 
     gen.writeEndObject()
   }
 }
 
 object MessageSerializer {
-  def apply[T <: Message](routingKey: String) = new MessageSerializer[T](routingKey)
+  def apply[T <: Message](routingKey: String = "") = new MessageSerializer[T](routingKey)
 }
