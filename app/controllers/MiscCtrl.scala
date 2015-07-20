@@ -71,8 +71,8 @@ object MiscCtrl extends Controller {
 
     val params = urlencode(Map(customParams ++ magicParams: _*))
 
-    val host = playConf.getString("server.host")
-    val scheme = playConf.getString("server.scheme")
+    val host = playConf.getString("hedylogos.server.host").get
+    val scheme = playConf.getString("hedylogos.server.scheme") getOrElse "http"
     val href = routes.MiscCtrl.qiniuCallback().url
     val callbackUrl = s"$scheme://$host$href"
     val expire = 3600
