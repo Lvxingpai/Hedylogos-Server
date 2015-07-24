@@ -69,7 +69,6 @@ object ChatCtrl extends Controller {
           val excludes = (jsonNode \ "excludes").asOpt[Seq[Long]] getOrElse Seq()
           sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
         }
-
         ret getOrElse Future(HedyResults.unprocessable())
       }
   }
