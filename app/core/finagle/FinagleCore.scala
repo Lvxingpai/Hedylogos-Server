@@ -25,7 +25,7 @@ object FinagleCore {
 
     cached map (v => Future[Option[UserInfo]](Some(v))) getOrElse {
       val retrievedFields = (fields ++ Seq(UserInfoProp.UserId, UserInfoProp.NickName)).toSet.toSeq
-      val future: Future[Option[UserInfo]] = FinagleFactory.client.getUserById(userId, Some(retrievedFields)) map (v => {
+      val future: Future[Option[UserInfo]] = FinagleFactory.client.getUserById(userId, Some(retrievedFields), None) map (v => {
         Cache.set(key, v, 100)
         Some(v)
       }) rescue {
