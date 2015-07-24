@@ -96,6 +96,7 @@ object ChatCtrl extends Controller {
     for {
       conv <- Chat.getConversation(new ObjectId(cid))
     } yield {
+      conv.muted = conv.muteNotif contains uid
       val mapper = ObjectMapperFactory().addSerializer(classOf[Conversation], ConversationSerializer[Conversation]()).build()
       val node = mapper.valueToTree[JsonNode](conv)
       HedyResults(data = Some(node))
