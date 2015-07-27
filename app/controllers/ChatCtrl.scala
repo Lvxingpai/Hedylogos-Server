@@ -101,4 +101,36 @@ object ChatCtrl extends Controller {
       HedyResults(data = Some(node))
     }
   })
+  def getConversationPropertyByUserId(uid: Long, targetId: Long) = Action.async(request => {
+    for {
+      conv <- Chat.getConversation(uid, targetId)
+    } yield {
+      conv.muted = conv.muteNotif contains uid
+      val mapper = ObjectMapperFactory().addSerializer(classOf[Conversation], ConversationSerializer[Conversation]()).build()
+      val node = mapper.valueToTree[JsonNode](conv)
+      HedyResults(data = Some(node))
+    }
+  })
+
+  def getConversationPropertyByUserIds(uid: Long, targetIds: String) = Action.async(request => {
+    val targetIdsSeq = if (targetIds == null) {
+      Seq()
+    } else {
+      targetIds.split(",").toSeq map (_.toLong)
+    }
+    val convList = targetIdsSeq map (targetId => {
+      for {
+        conv <- Chat.getConversation(uid, targetId)
+      } yield {
+        conv.muted = conv.muteNotif contains uid
+        conv
+      }
+    })
+    for {
+      result <- Future.sequence(convList) map (convSeq => {
+        val mapper = ObjectMapperFactory().addSerializer(classOf[Conversation], ConversationSerializer[Conversation]()).build()
+        mapper.valueToTree[JsonNode](convSeq)
+      })
+    } yield HedyResults(data = Some(result))
+  })
 }
