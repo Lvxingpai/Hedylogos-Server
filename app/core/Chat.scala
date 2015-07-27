@@ -248,6 +248,10 @@ object Chat {
   def getConversation(cid: ObjectId): Future[Conversation] =
     Future(ds.find(classOf[Conversation], Conversation.fdId, cid).get)
 
+  def getConversation(uid: Long, targetId: Long): Future[Conversation] = {
+    val l = Seq(uid, targetId).sorted
+    Future(ds.find(classOf[Conversation], Conversation.fdFingerprint, s"${l.head}.${l.last}").get)
+  }
   /**
    * 设置/取消消息免打扰
    * @param userId
