@@ -47,6 +47,12 @@ class Conversation extends AbstractEntiry {
    */
   @Transient
   var pinned: Boolean = false
+
+  /**
+   * 非空conversation所对应的targetId
+   */
+  @Transient
+  var targetId: Long = 0
 }
 
 object Conversation {

@@ -11,9 +11,10 @@ class ConversationSerializer[T <: Conversation] extends JsonSerializer[T] {
   override def serialize(value: T, gen: JsonGenerator, serializers: SerializerProvider): Unit = {
     gen.writeStartObject()
 
+    gen.writeStringField("id", value.id.toString)
     gen.writeBooleanField("muted", value.muted)
     gen.writeBooleanField("pinned", value.pinned)
-
+    gen.writeNumberField("targetId", value.targetId)
     gen.writeEndObject()
   }
 }

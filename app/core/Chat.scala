@@ -245,12 +245,15 @@ object Chat {
     Future.sequence(ret) map (_ => ())
   }
 
-  def getConversation(cid: ObjectId): Future[Conversation] =
-    Future(ds.find(classOf[Conversation], Conversation.fdId, cid).get)
+  def getConversation(cid: ObjectId): Future[Option[Conversation]] =
+    Future(Option(ds.find(classOf[Conversation], Conversation.fdId, cid).get))
 
-  def getConversation(uid: Long, targetId: Long): Future[Conversation] = {
+  def getConversation(uid: Long, targetId: Long): Future[Option[Conversation]] = {
     val l = Seq(uid, targetId).sorted
-    Future(ds.find(classOf[Conversation], Conversation.fdFingerprint, s"${l.head}.${l.last}").get)
+
+    val str = Array(s"${l.head}.${l.last}", targetId.toString)
+
+    Future(Option(ds.createQuery(classOf[Conversation]).field(Conversation.fdFingerprint).in(str.toList).get))
   }
   /**
    * 设置/取消消息免打扰

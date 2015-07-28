@@ -12,6 +12,7 @@ import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
 
 import scala.collection.Map
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.postfixOps
 
@@ -95,29 +96,19 @@ object ChatCtrl extends Controller {
     for {
       conv <- Chat.getConversation(new ObjectId(cid))
     } yield {
-      if (conv.muteNotif == null) {
-        conv.muted = false
+      if (conv nonEmpty) {
+        val c = conv.get
+        if (c.muteNotif == null) {
+          c.muted = false
+        } else {
+          c.muted = c.muteNotif contains uid
+        }
+        val mapper = ObjectMapperFactory().addSerializer(classOf[Conversation], ConversationSerializer[Conversation]()).build()
+        val node = mapper.valueToTree[JsonNode](conv)
+        HedyResults(data = Some(node))
       } else {
-        conv.muted = conv.muteNotif contains uid
+        HedyResults.unprocessable()
       }
-      val mapper = ObjectMapperFactory().addSerializer(classOf[Conversation], ConversationSerializer[Conversation]()).build()
-      val node = mapper.valueToTree[JsonNode](conv)
-      HedyResults(data = Some(node))
-    }
-  })
-  def getConversationPropertyByUserId(uid: Long, targetId: Long) = Action.async(request => {
-    for {
-      conv <- Chat.getConversation(uid, targetId)
-    } yield {
-      if (conv.muteNotif == null) {
-        conv.muted = false
-      } else {
-        conv.muted = conv.muteNotif contains uid
-      }
-
-      val mapper = ObjectMapperFactory().addSerializer(classOf[Conversation], ConversationSerializer[Conversation]()).build()
-      val node = mapper.valueToTree[JsonNode](conv)
-      HedyResults(data = Some(node))
     }
   })
 
@@ -127,23 +118,30 @@ object ChatCtrl extends Controller {
     } else {
       targetIds.split(",").toSeq map (_.toLong)
     }
+    val userIds = ArrayBuffer[Long]()
     val convList = targetIdsSeq map (targetId => {
       for {
         conv <- Chat.getConversation(uid, targetId)
       } yield {
-        if (conv.muteNotif == null) {
-          conv.muted = false
-        } else {
-          conv.muted = conv.muteNotif contains uid
-        }
-        conv
+        if (conv nonEmpty) {
+          val c = conv.get
+          if (c.muteNotif == null) {
+            c.muted = false
+          } else {
+            c.muted = c.muteNotif contains uid
+          }
+          c.targetId = targetId
+          Some(c)
+        } else None
       }
     })
     for {
       result <- Future.sequence(convList) map (convSeq => {
         val mapper = ObjectMapperFactory().addSerializer(classOf[Conversation], ConversationSerializer[Conversation]()).build()
-        mapper.valueToTree[JsonNode](convSeq)
+        mapper.valueToTree[JsonNode](convSeq.filter(_ nonEmpty) map (_.get))
       })
-    } yield HedyResults(data = Some(result))
+    } yield {
+      HedyResults(data = Some(result))
+    }
   })
 }
