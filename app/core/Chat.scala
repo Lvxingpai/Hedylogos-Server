@@ -244,6 +244,13 @@ object Chat {
 
     Future.sequence(ret) map (_ => ())
   }
+  def opConversationProperty(uid: Long, targetId: Long, settings: Map[String, Boolean]): Future[Unit] = {
+    val ret = settings.toSeq map (item => item._1 match {
+      case "mute" => opMuteNotif(uid, targetId, item._2)
+    })
+
+    Future.sequence(ret) map (_ => ())
+  }
 
   def getConversation(cid: ObjectId): Future[Option[Conversation]] =
     Future(Option(ds.find(classOf[Conversation], Conversation.fdId, cid).get))
@@ -264,6 +271,20 @@ object Chat {
    */
   def opMuteNotif(userId: Long, convId: ObjectId, mute: Boolean): Future[Unit] = {
     val query = ds.find(classOf[Conversation], Conversation.fdId, convId)
+    var updateOps: UpdateOperations[Conversation] = null
+    mute match {
+      case true => updateOps = ds.createUpdateOperations(classOf[Conversation]).add(Conversation.fdMuteNotif, userId, false)
+      case false => updateOps = ds.createUpdateOperations(classOf[Conversation]).removeAll(Conversation.fdMuteNotif, userId)
+    }
+    Future {
+      ds.updateFirst(query, updateOps)
+    }
+  }
+  def opMuteNotif(userId: Long, targetId: Long, mute: Boolean): Future[Unit] = {
+    val l = Seq(userId, targetId).sorted
+    val str = Array(s"${l.head}.${l.last}", targetId.toString)
+
+    val query = ds.createQuery(classOf[Conversation]).field(Conversation.fdFingerprint).in(str.toList)
     var updateOps: UpdateOperations[Conversation] = null
     mute match {
       case true => updateOps = ds.createUpdateOperations(classOf[Conversation]).add(Conversation.fdMuteNotif, userId, false)

@@ -9,7 +9,9 @@ GET          /version                                                 controller
 
 GET          /users/$uid<\d+>/conversations                           controllers.ChatCtrl.getConversationPropertyByUserIds(uid: Long, targetIds: String?="")
 # PUT /users/100028/conversations/558ba2a124aa9a0001f6dafe
-PATCH        /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.updateConversationProperty(uid:Long, cid:String)
+PATCH        /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.updateConversationPropertyById(uid:Long, cid:String)
+
+PATCH        /users/$uid<\d+>/conversations/$targetId<\d+>            controllers.ChatCtrl.updateConversationProperty(uid:Long, targetId:Long)
 
 GET          /users/$uid<\d+>/conversations/$cid<[0-9a-f]{24}>        controllers.ChatCtrl.getConversationProperty(uid:Long, cid:String)
 

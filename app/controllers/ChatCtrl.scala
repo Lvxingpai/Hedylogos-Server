@@ -39,7 +39,7 @@ object ChatCtrl extends Controller {
   }
 
   @WithAccessLog
-  def updateConversationProperty(uid: Long, cid: String) = Action.async {
+  def updateConversationPropertyById(uid: Long, cid: String) = Action.async {
     request =>
       {
         val result = for {
@@ -48,6 +48,21 @@ object ChatCtrl extends Controller {
           val muteOpt = (body \ "mute").asOpt[Boolean]
           val settings = Map("mute" -> muteOpt).filter(_._2 nonEmpty).mapValues(_.get)
           Chat.opConversationProperty(uid, new ObjectId(cid), settings) map (_ => HedyResults())
+        }
+        result getOrElse Future(Results.BadRequest)
+      }
+  }
+
+  @WithAccessLog
+  def updateConversationProperty(uid: Long, targetId: Long) = Action.async {
+    request =>
+      {
+        val result = for {
+          body <- request.body.asJson
+        } yield {
+          val muteOpt = (body \ "mute").asOpt[Boolean]
+          val settings = Map("mute" -> muteOpt).filter(_._2 nonEmpty).mapValues(_.get)
+          Chat.opConversationProperty(uid, targetId, settings) map (_ => HedyResults())
         }
         result getOrElse Future(Results.BadRequest)
       }
