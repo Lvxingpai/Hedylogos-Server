@@ -26,12 +26,13 @@ object GlobalConfig {
     val isProduction = runlevel == "production"
 
     val mongoKey = if (isProduction) "mongo" else "mongo-dev"
+    val redisKey = "redis-main"
     val confKeys = if (isProduction)
-      Seq("hedylogos" -> "hedylogos")
+      Seq("hedylogos" -> "hedylogos", "hedylogos-base" -> "hedylogos")
     else
-      Seq("hedylogos-dev" -> "hedylogos", "hedylogos" -> "hedylogos")
+      Seq("hedylogos-dev" -> "hedylogos", "hedylogos-base" -> "hedylogos")
 
-    val services = EtcdServiceBuilder().addKey(mongoKey, "mongo").addKey("redis-main", "redis").build()
+    val services = EtcdServiceBuilder().addKey(mongoKey, "mongo").addKey(redisKey, "redis").build()
     val conf = confKeys.foldLeft(EtcdConfBuilder())((builder, pair) => {
       builder.addKey(pair._1, pair._2)
     }).build()

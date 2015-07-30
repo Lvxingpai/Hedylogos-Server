@@ -6,6 +6,7 @@ import models.Conversation
 import org.mongodb.morphia.Morphia
 
 import scala.collection.JavaConversions._
+import scala.language.postfixOps
 
 /**
  * Created by zephyre on 4/16/15.
@@ -31,9 +32,12 @@ object MorphiaFactory {
       new ServerAddress(c.getString("host").get, c.getInt("port").get)
     })
 
-    val user = conf.getString("hedylogos.server.mongo.user").get
-    val password = conf.getString("hedylogos.server.mongo.password").get
-    val credential = MongoCredential.createScramSha1Credential(user, dbName, password.toCharArray)
+    val credential = for {
+      user <- conf.getString("hedylogos.server.mongo.user")
+      password <- conf.getString("hedylogos.server.mongo.password")
+    } yield {
+      MongoCredential.createScramSha1Credential(user, dbName, password.toCharArray)
+    }
 
     val options = new MongoClientOptions.Builder()
       //连接超时
@@ -46,7 +50,10 @@ object MorphiaFactory {
       .threadsAllowedToBlockForConnectionMultiplier(50)
       .build()
 
-    new MongoClient(serverAddress, Seq(credential), options)
+    if (credential nonEmpty)
+      new MongoClient(serverAddress, Seq(credential.get), options)
+    else
+      new MongoClient(serverAddress, options)
   }
 
   lazy val datastore = {
