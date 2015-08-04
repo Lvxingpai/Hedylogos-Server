@@ -127,12 +127,14 @@ object Chat {
           (cg.participants filter (_ != sender)).toSet ++ includes -- excludes)
     }
 
-    val allMembers = chatType match {
-      case item if item.id == ChatType.SINGLE.id => Future(Seq(sender, receiver))
-      case item if item.id == ChatType.CHATGROUP.id =>
-        FinagleCore.getChatGroup(receiver) map (cg =>
-          ((cg.participants).toSet ++ includes -- excludes).toSeq)
-    }
+    val allMembers = futureTargets map (s => (s + sender).toSeq)
+
+    //    val allMembers = chatType match {
+    //      case item if item.id == ChatType.SINGLE.id => Future(Seq(sender, receiver))
+    //      case item if item.id == ChatType.CHATGROUP.id =>
+    //        FinagleCore.getChatGroup(receiver) map (cg =>
+    //          (cg.participants.toSet ++ includes -- excludes).toSeq)
+    //    }
 
     // 设置了消息免打扰的用户
     val futureMuted = futureTargets map (members => {
@@ -144,8 +146,10 @@ object Chat {
       muted <- futureMuted
       members <- allMembers
       msg1 <- MongoStorage.sendMessage(msg, members)
-      redisResult <- RedisMessaging.sendMessage(msg1, targets.toSeq)
-      _ <- GetuiService.sendMesageWithMute(redisResult, targets.toSeq, muted)
+      //      redisResult <- RedisMessaging.sendMessage(msg1, targets.toSeq)
+      redisResult <- RedisMessaging.sendMessage(msg1, members)
+      //      _ <- GetuiService.sendMesageWithMute(redisResult, targets.toSeq, muted)
+      _ <- GetuiService.sendMesageWithMute(redisResult, members, muted)
     } yield msg1
   }
 
