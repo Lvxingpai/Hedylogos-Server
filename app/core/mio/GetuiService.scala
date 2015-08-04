@@ -3,7 +3,8 @@ package core.mio
 import com.gexin.rp.sdk.base.impl.{ ListMessage, SingleMessage, Target }
 import com.gexin.rp.sdk.http.IGtPush
 import com.gexin.rp.sdk.template.TransmissionTemplate
-import core.serialization.{ InstantMessageSerializer, ObjectMapperFactory }
+import core.formatter.serializer.ObjectMapperFactory
+import core.formatter.serializer.InstantMessageSerializer
 import core.{ GlobalConfig, User }
 import models.Message
 import play.api.Logger

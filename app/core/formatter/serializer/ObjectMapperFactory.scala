@@ -1,8 +1,7 @@
-package core.serialization
+package core.formatter.serializer
 
-import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.module.SimpleModule
-import com.fasterxml.jackson.databind.{ SerializerProvider, JsonSerializer, ObjectMapper }
+import com.fasterxml.jackson.databind.{ JsonSerializer, ObjectMapper }
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import models.AbstractEntiry
 import org.bson.types.ObjectId
@@ -15,14 +14,6 @@ class ObjectMapperFactory {
   private val module = new SimpleModule()
   mapper.registerModule(DefaultScalaModule)
   module.addSerializer(classOf[ObjectId], new ObjectIdSerializer())
-
-  /**
-   * 默认的ObjectId序列化器
-   */
-  class ObjectIdSerializer extends JsonSerializer[ObjectId] {
-    override def serialize(value: ObjectId, gen: JsonGenerator, serializers: SerializerProvider): Unit =
-      gen.writeString(value.toString)
-  }
 
   def addSerializer[T <: AbstractEntiry](clazz: Class[T], ser: JsonSerializer[T]): ObjectMapperFactory = {
     module.addSerializer(clazz, ser)

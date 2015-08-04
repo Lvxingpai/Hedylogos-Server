@@ -5,7 +5,8 @@ namespace java com.lvxingpai.yunkai.java
 enum Gender {
   MALE,
   FEMALE,
-  SECRET
+  SECRET,
+  BOTH
 }
 
 // 聊天群组的类型。CHATGROUP为普通讨论组
@@ -50,7 +51,9 @@ struct UserInfo {
   10: optional i64 logoutTime,
   11: list<string> loginSource,
   20: optional string memo,
-  100: list<Role> roles
+  100: list<Role> roles,
+  110: optional string birth,
+  120: optional string residence
 }
 
 // 讨论组信息
@@ -103,7 +106,9 @@ enum UserInfoProp {
   LOGOUT_TIME,
   LOGIN_SOURCE,
   MEMO,
-  ROLES
+  ROLES,
+  BIRTHDAY,
+  RESIDENCE
 }
 
 //Created by pengyt on 2015/5/26.
@@ -227,7 +232,10 @@ service userservice {
   // 发送手机验证码
   // 如果发送过于频繁，会出现OverQuotaLimitException
   // 如果参数不合法，比如既不提供tel，又不提供userId，会抛出InvalidArgsException
-  void sendValidationCode(1:OperationCode action, 2:string tel, 3:optional i32 countryCode) throws (1:OverQuotaLimitException ex, 2:InvalidArgsException ex2)
+  // throws:
+  // OverQuotaLimitException: 短信验证码发送过于频繁
+  // ResourceConflictException: 在发送新建用户的验证码时，如果手机号码已经注册，则抛出该异常
+  void sendValidationCode(1:OperationCode action, 2:optional i64 userId, 3:string tel, 4:optional i32 countryCode) throws (1:OverQuotaLimitException ex, 2:InvalidArgsException ex2, 3:ResourceConflictException ex3)
 
 //   根据fingerprint读取Token
 //  Token fetchToken(1:string fingerprint) throws (1:NotFoundException ex)
@@ -250,6 +258,9 @@ service userservice {
 
   // 搜索用户(参数1表示根据哪些字段搜索, 参数2表示返回的字段, 参数3表示当前页从第几个开始, 4表示一页返回多少个)
   list<UserInfo> searchUserInfo(1: map<UserInfoProp, string> queryFields, 2: optional list<UserInfoProp> fields, 3: optional i32 offset, 4: optional i32 count)
+
+  // 第三方用户(微信)登录
+  UserInfo loginByOAuth(1: string code, 2:string source)
 
   // 用户退出登录
   // void logout(1: i64 userId)

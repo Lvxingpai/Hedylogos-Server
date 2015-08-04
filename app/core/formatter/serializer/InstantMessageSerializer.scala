@@ -1,4 +1,4 @@
-package core.serialization
+package core.formatter.serializer
 
 import models.Message
 

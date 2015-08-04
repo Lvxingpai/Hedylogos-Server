@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.{ ObjectMapper, JsonNode }
 import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
-import core.serialization.{ MessageSerializer, ConversationSerializer, InstantMessageSerializer, ObjectMapperFactory }
+import core.formatter.serializer.{ ConversationSerializer, ObjectMapperFactory, MessageSerializer }
 import models.{ Conversation, Message }
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
