@@ -24,7 +24,7 @@ object ChatCtrl extends Controller {
   case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
 
   def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String, includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq()): Future[Result] = {
-    Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes) map (msg => {
+    val results = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes) map (msg => {
       val result = JsObject(Seq(
         "conversation" -> JsString(msg.getConversation.toString),
         "msgId" -> JsNumber(msg.getMsgId),
@@ -36,6 +36,16 @@ object ChatCtrl extends Controller {
 
       HedyResults(data = Some(node))
     })
+
+    // 处理旅行问问的情况
+    val wenwenId = 10001
+    if (receiver == wenwenId) {
+      Future {
+        ChatCtrl.sendMessageBase(0, "亲，欢迎使用旅行问问功能，好吧，我是个机器人，不过目前这个版本我还在完善中，敬请期待下个版本的我。", sender, wenwenId, "single")
+      }
+    }
+
+    results
   }
 
   @WithAccessLog
