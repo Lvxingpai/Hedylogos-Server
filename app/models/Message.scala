@@ -67,6 +67,8 @@ object Message {
     val RESTAURANT = Value(14)
     val SHOPPING = Value(15)
     val HOTEL = Value(16)
+    val QA = Value(17)
+    val HTML = Value(18)
     val CMD = Value(100)
     val TIP = Value(200)
   }
