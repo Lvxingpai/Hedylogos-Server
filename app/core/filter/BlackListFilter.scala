@@ -11,11 +11,8 @@ import models.Message
  * Created by pengyt on 2015/8/11.
  */
 class BlackListFilter extends Filter {
-  def response(isBlack: Boolean, message: Message): Message = {
-    if (isBlack)
-      throw new BlackListException(Some("对方拒绝了您的消息")) // 发送者在接收者的黑名单中
-    else
-      message
+  def response(isBlack: Boolean, message: Message): AnyRef = {
+    if (isBlack) None else message
   }
   val doFilter: PartialFunction[AnyRef, AnyRef] = {
     case futureMsg: Future[Message] => for {
