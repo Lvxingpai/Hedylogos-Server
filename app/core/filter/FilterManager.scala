@@ -2,8 +2,8 @@ package core.filter
 
 import java.io.File
 
-import com.lvxingpai.yunkai.BlackListException
 import com.typesafe.config.ConfigFactory
+import core.exception.MessageException
 import models.Message
 import core.Implicits._
 import play.api.Configuration
@@ -18,7 +18,9 @@ import scala.language.postfixOps
 object FilterManager {
 
   var filterPipeline: SortedMap[String, Filter] = SortedMap(
-    "BlackListFilter" -> new BlackListFilter()
+    "BlackListFilter" -> new BlackListFilter() //,
+  //    "ContactFilter" -> new ContactFilter(),
+  //    "GroupMemberFilter" -> new GroupMemberFilter()
   )
 
   /**
@@ -37,22 +39,33 @@ object FilterManager {
 
   /**
    * 添加过滤器
-   * @param filters
+   * @param filters 过滤器map, 第一项为过滤器名, 第二项为过滤器
    * @return
    */
   def addFilter(pos: Int = -1, filters: SortedMap[String, Filter]): SortedMap[String, Filter] = {
-    //filterPipeline ++ filter
     filterPipeline.toBuffer.insert(pos, filters)
     filterPipeline
   }
 
+  /**
+   * 在某个过滤器前插入一个过滤器
+   * @param preFilterName 过滤器名, 在此过滤器前插入
+   * @param filters 过滤器map, 第一项为过滤器名, 第二项为过滤器
+   * @return
+   */
   def addFilterPre(preFilterName: String, filters: SortedMap[String, Filter]): SortedMap[String, Filter] = {
-    val pos = filterPipeline.toSeq.indexOf(preFilterName)
+    val pos = filterPipeline.keySet.toSeq.indexOf(preFilterName)
     addFilter(pos, filters)
   }
 
+  /**
+   * 在某个过滤器后插入一个过滤器
+   * @param nextFilterName 过滤器名, 在此过滤器后插入
+   * @param filters 过滤器map, 第一项为过滤器名, 第二项为过滤器
+   * @return
+   */
   def addFilterNext(nextFilterName: String, filters: SortedMap[String, Filter]): SortedMap[String, Filter] = {
-    val pos = filterPipeline.toSeq.indexOf(nextFilterName)
+    val pos = filterPipeline.keySet.toSeq.indexOf(nextFilterName)
     addFilter(pos + 1, filters)
   }
 
@@ -69,27 +82,44 @@ object FilterManager {
 
   /**
    * 删除过滤器
-   * @param filters
+   * @param filters 过滤器map, 第一项为过滤器名, 第二项为过滤器
    * @return
    */
   def removeFilter(filters: SortedMap[String, Filter]): SortedMap[String, Filter] = {
     filterPipeline.filterNot(filters => true)
   }
 
+  /**
+   * 处理器, 通过管道过滤
+   */
   val process: PartialFunction[AnyRef, AnyRef] = {
     case futureMsg0: Future[Message] =>
       for {
         msg0 <- futureMsg0
       } yield {
-        filterPipeline.foldLeft(msg0)((msg, filter) => {
-            filter._2.doFilter(msg).asInstanceOf[Message]
+        filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
+          filter._2.doFilter(msg)
         })
-
       }
     case msg0: Message =>
       filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
         filter._2.doFilter(msg)
       })
-    case None => None
+    case None => throw new MessageException(416, "no such message entity")
   }
+  //  val process: PartialFunction[AnyRef, AnyRef] = {
+  //    case futureMsg0: Future[Option[Message]] =>
+  //      for {
+  //        msg0 <- futureMsg0
+  //      } yield {
+  //        filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
+  //          filter._2.doFilter(msg)
+  //        })
+  //      }
+  //    case msg0: Option[Message] =>
+  //      filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
+  //        filter._2.doFilter(msg)
+  //      })
+  //    //    case None => None
+  //  }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.{ ObjectMapper, JsonNode }
 import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
+import core.filter.FilterManager
 import core.formatter.serializer.{ ConversationSerializer, ObjectMapperFactory, MessageSerializer }
 import models.{ Conversation, Message }
 import org.bson.types.ObjectId
@@ -25,16 +26,19 @@ object ChatCtrl extends Controller {
 
   def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String, includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq()): Future[Result] = {
     val results = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes) map (msg => {
-      val result = JsObject(Seq(
-        "conversation" -> JsString(msg.getConversation.toString),
-        "msgId" -> JsNumber(msg.getMsgId),
-        "timestamp" -> JsNumber(msg.getTimestamp)
-      ))
-      val mapper = new ObjectMapper()
-      val node = mapper.createObjectNode()
-      node put ("conversation", msg.conversation.toString) put ("msgId", msg.msgId) put ("timestamp", msg.timestamp)
+      if (msg nonEmpty) {
+        val result = JsObject(Seq(
+          "conversation" -> JsString(msg.get.getConversation.toString),
+          "msgId" -> JsNumber(msg.get.getMsgId),
+          "timestamp" -> JsNumber(msg.get.getTimestamp)
+        ))
+        val mapper = new ObjectMapper()
+        val node = mapper.createObjectNode()
+        node put ("conversation", msg.get.conversation.toString) put ("msgId", msg.get.msgId) put ("timestamp", msg.get.timestamp)
 
-      HedyResults(data = Some(node))
+        HedyResults(data = Some(node))
+      } else
+        throw new Exception("未通过过滤器")
     })
 
     // 处理旅行问问的情况
@@ -80,6 +84,26 @@ object ChatCtrl extends Controller {
 
   @WithAccessLog
   def sendMessage() = Action.async {
+    request =>
+      {
+        val ret = for {
+          jsonNode <- request.body.asJson
+          senderId <- (jsonNode \ "sender").asOpt[Long]
+          receiverId <- (jsonNode \ "receiver").asOpt[Long]
+          chatType <- (jsonNode \ "chatType").asOpt[String]
+          msgType <- (jsonNode \ "msgType").asOpt[Int]
+          contents <- (jsonNode \ "contents").asOpt[String]
+        } yield {
+          // includes和excludes是可选项目
+          val includes = (jsonNode \ "includes").asOpt[Seq[Long]] getOrElse Seq()
+          val excludes = (jsonNode \ "excludes").asOpt[Seq[Long]] getOrElse Seq()
+          sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
+        }
+        ret getOrElse Future(HedyResults.unprocessable())
+      }
+  }
+  @WithAccessLog
+  def sendMessageTest() = Action.async {
     request =>
       {
         val ret = for {

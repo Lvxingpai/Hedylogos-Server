@@ -4,6 +4,7 @@ import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
 import core.connector.{ HedyRedis, MorphiaFactory }
+import core.filter.FilterManager
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
 import misc.FinagleFactory
@@ -211,7 +212,7 @@ object Chat {
    * @param chatType 消息类型：单聊和群聊这两种
    * @return
    */
-  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
+  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Option[Message]] = {
     // 是否为单聊
     val isSingleChat = chatType == ChatType.SINGLE
 
@@ -219,19 +220,28 @@ object Chat {
       Chat.getSingleConversation(sender, receiver)
     else
       Chat.getChatGroupConversation(receiver)
+    // val msgRes = FilterManager.process(buildMessage(msgType, contents, conv.id, receiver, sender, chatType))
 
     for {
       conv <- conversation
-      msg <- buildMessage(msgType, contents, conv.id, receiver, sender, chatType)
+      msg <- {
+        val processedMsg = FilterManager.process(buildMessage(msgType, contents, conv.id, receiver, sender, chatType))
+        val result = processedMsg
+        result
+
+        processedMsg match {
+          case msg: Message => Future(msg)
+          case futureMsg: Future[Message] => futureMsg
+        }
+      }
       abbrev <- buildMessageAbbrev(msg)
       ret <- {
         msg.abbrev = abbrev.orNull
-
         // 如果是单聊的情况，不要启用includes/和excludes机制
         if (isSingleChat)
-          sendMessageToConv(msg, conv, Seq(), Seq())
+          sendMessageToConv(msg, conv, Seq(), Seq()) map (item => Some(item))
         else
-          sendMessageToConv(msg, conv, includes, excludes)
+          sendMessageToConv(msg, conv, includes, excludes) map (item => Some(item))
       }
     } yield ret
   }
