@@ -20,9 +20,9 @@ object FinagleFactory {
     val server = services.head.getString("host").get -> services.head.getInt("port").get
 
     val service = ClientBuilder()
-      //      .hosts(new InetSocketAddress("127.0.0.1", 9005))
-      //      .hosts(new InetSocketAddress(server._1, server._2))
-      .hosts(new InetSocketAddress("192.168.100.2", 9400))
+//      .hosts(new InetSocketAddress("127.0.0.1", 9005))
+      .hosts(new InetSocketAddress(server._1, server._2))
+      //      .hosts(new InetSocketAddress("192.168.100.2", 9400))
       .hostConnectionLimit(1000)
       .codec(ThriftClientFramedCodec())
       .build()

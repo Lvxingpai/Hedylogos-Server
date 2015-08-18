@@ -4,6 +4,7 @@ import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
 import core.connector.{ HedyRedis, MorphiaFactory }
+import core.exception.StopMessageFilterException
 import core.filter.FilterManager
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }

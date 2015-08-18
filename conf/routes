@@ -27,8 +27,6 @@ POST         /misc/qiniu-callback                                     controller
 
 POST         /chats                                                   controllers.ChatCtrl.sendMessage
 
-POST         /chat                                                    controllers.ChatCtrl.sendMessageTest
-
 
 #GET         /chats/:user                   controllers.ChatCtrl.fetchMessages(user:Long)
 

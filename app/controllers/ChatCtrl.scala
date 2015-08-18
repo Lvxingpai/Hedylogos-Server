@@ -97,26 +97,6 @@ object ChatCtrl extends Controller {
         ret getOrElse Future(HedyResults.unprocessable())
       }
   }
-  @WithAccessLog
-  def sendMessageTest() = Action.async {
-    request =>
-      {
-        val ret = for {
-          jsonNode <- request.body.asJson
-          senderId <- (jsonNode \ "sender").asOpt[Long]
-          receiverId <- (jsonNode \ "receiver").asOpt[Long]
-          chatType <- (jsonNode \ "chatType").asOpt[String]
-          msgType <- (jsonNode \ "msgType").asOpt[Int]
-          contents <- (jsonNode \ "contents").asOpt[String]
-        } yield {
-          // includes和excludes是可选项目
-          val includes = (jsonNode \ "includes").asOpt[Seq[Long]] getOrElse Seq()
-          val excludes = (jsonNode \ "excludes").asOpt[Seq[Long]] getOrElse Seq()
-          sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
-        }
-        ret getOrElse Future(HedyResults.unprocessable())
-      }
-  }
 
   @WithAccessLog
   def fetchMessages(userId: Long) = Action.async(request => {
