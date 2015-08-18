@@ -1,34 +1,49 @@
 package core.filter
 
-import core.Implicits.TwitterConverter._
 import core.exception.StopMessageFilterException
-import scala.concurrent.ExecutionContext.Implicits.global
 import misc.FinagleFactory
-
-import scala.concurrent.Future
 import models.Message
+import core.Implicits.TwitterConverter.twitterToScalaFuture
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
 /**
  * Created by pengyt on 2015/8/11.
  */
 class BlackListFilter extends Filter {
-  def response(isBlack: Boolean, message: Message): AnyRef = {
-    if (!isBlack)
-      message
-    else
-      throw new StopMessageFilterException("对方拒绝了您的发送")
+
+  /**
+   * 检查两个用户是否存在block关系
+   *
+   * @return
+   */
+  private def isBlocked(userA: Long, userB: Long): Future[Boolean] = FinagleFactory.client.checkBlackList(userA, userB)
+
+  /**
+   * 权限检查。根据message，如果sender在receiver的黑名单中，将抛出StopMessageFilterException的异常，终止消息过滤流水线。
+   *
+   * @param message 需要处理的消息
+   * @return
+   */
+  private def validate(message: Message): Future[Message] = {
+    for {
+      block <- isBlocked(message.senderId, message.receiverId)
+    } yield {
+      if (block)
+        throw new StopMessageFilterException("对方拒绝了您的发送")
+      else
+        message
+    }
   }
 
   val doFilter: PartialFunction[AnyRef, AnyRef] = {
-    case futureMsg: Future[Message] => for {
-      msg <- futureMsg
-      isBlack <- FinagleFactory.client.checkBlackList(msg.senderId, msg.receiverId)
-    } yield {
-      response(isBlack, msg)
-    }
-    case msg: Message => for {
-      isBlack <- FinagleFactory.client.checkBlackList(msg.senderId, msg.receiverId)
-    } yield {
-      response(isBlack, msg)
-    }
+    case futureMsg: Future[Message] =>
+      for {
+        msg <- futureMsg
+        validatedMessage <- validate(msg)
+      } yield {
+        validatedMessage
+      }
+    case msg: Message => validate(msg)
   }
 }

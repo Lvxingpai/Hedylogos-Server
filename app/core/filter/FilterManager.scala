@@ -17,7 +17,8 @@ object FilterManager {
 
   var filterPipeline: SortedMap[String, Filter] = SortedMap(
     //    "BlackListFilter" -> new BlackListFilter() //,
-    "test-filter" -> new TestFilter()
+    //    "wenwen" -> new WenwenFilter()
+  //    "test-filter" -> new TestFilter()
   //    "ContactFilter" -> new ContactFilter(),
   //    "GroupMemberFilter" -> new GroupMemberFilter()
   )
@@ -88,41 +89,5 @@ object FilterManager {
     filterPipeline.filterNot(filters => true)
   }
 
-  def process(input: AnyRef): AnyRef = {
-    filterPipeline.values.foldLeft(input)((v, filter) => filter.doFilter(v))
-  }
-
-  //  /**
-  //   * 处理器, 通过管道过滤
-  //   */
-  //  val process: PartialFunction[AnyRef, AnyRef] = {
-  //    case futureMsg0: Future[Message] =>
-  //      for {
-  //        msg0 <- futureMsg0
-  //      } yield {
-  //        filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
-  //          filter._2.doFilter(msg)
-  //        })
-  //      }
-  //    case msg0: Message =>
-  //      filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
-  //        filter._2.doFilter(msg)
-  //      })
-  //    case None => throw new MessageException(416, "no such message entity")
-  //  }
-  //  val process: PartialFunction[AnyRef, AnyRef] = {
-  //    case futureMsg0: Future[Option[Message]] =>
-  //      for {
-  //        msg0 <- futureMsg0
-  //      } yield {
-  //        filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
-  //          filter._2.doFilter(msg)
-  //        })
-  //      }
-  //    case msg0: Option[Message] =>
-  //      filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
-  //        filter._2.doFilter(msg)
-  //      })
-  //    //    case None => None
-  //  }
+  def process(input: AnyRef): AnyRef = filterPipeline.values.foldLeft(input)((v, filter) => filter.doFilter(v))
 }
