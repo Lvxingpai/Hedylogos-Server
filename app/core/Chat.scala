@@ -103,12 +103,15 @@ object Chat {
     }
   }
 
-  def buildMessage(msgType: MessageType.Value, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] =
-    generateMsgId(cid) map (v => Message(msgType, contents, cid, v.get, receiver, sender, chatType))
-
-  def buildMessage(msgType: MessageType.Value, contents: String, cidList: Seq[ObjectId], receiver: Long, sender: Long, chatType: ChatType.Value): Future[Seq[Message]] = {
-    val ret = cidList map (cid => buildMessage(msgType, contents, cid, receiver, sender, chatType))
-    Future.sequence(ret)
+  def buildMessage(msgType: MessageType.Value, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] = {
+    for {
+      msgId <- generateMsgId(cid)
+      msg <- Future(Message(msgType, contents, cid, msgId.get, receiver, sender, chatType))
+      optAbbrev <- buildMessageAbbrev(msg)
+    } yield {
+      msg.abbrev = optAbbrev.orNull
+      msg
+    }
   }
 
   /**
@@ -212,7 +215,7 @@ object Chat {
    * @param chatType 消息类型：单聊和群聊这两种
    * @return
    */
-  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Option[Message]] = {
+  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
     // 是否为单聊
     val isSingleChat = chatType == ChatType.SINGLE
 
@@ -224,26 +227,25 @@ object Chat {
 
     for {
       conv <- conversation
-      msg <- {
-        val processedMsg = FilterManager.process(buildMessage(msgType, contents, conv.id, receiver, sender, chatType))
-        val result = processedMsg
-        result
-
-        processedMsg match {
-          case msg: Message => Future(msg)
-          case futureMsg: Future[Message] => futureMsg
+      msg <- buildMessage(msgType, contents, conv.id, receiver, sender, chatType)
+      filteredMsg <- FilterManager.process(msg) match {
+        // 对消息进行过滤处理，并统一转换为Future
+        case v: Future[Message] => v
+        case m: Message => Future(m)
+      }
+      ret <- {
+        // 发送消息
+        filteredMsg match {
+          case msg: Message =>
+            if (isSingleChat)
+              sendMessageToConv(msg, conv, Seq(), Seq())
+            else
+              sendMessageToConv(msg, conv, includes, excludes)
         }
       }
-      abbrev <- buildMessageAbbrev(msg)
-      ret <- {
-        msg.abbrev = abbrev.orNull
-        // 如果是单聊的情况，不要启用includes/和excludes机制
-        if (isSingleChat)
-          sendMessageToConv(msg, conv, Seq(), Seq()) map (item => Some(item))
-        else
-          sendMessageToConv(msg, conv, includes, excludes) map (item => Some(item))
-      }
-    } yield ret
+    } yield {
+      ret
+    }
   }
 
   def fetchAndAckMessage(userId: Long, purgeBefore: Long): Future[Seq[Message]] = {

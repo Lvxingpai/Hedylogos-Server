@@ -1,15 +1,14 @@
 package controllers
 
-import com.fasterxml.jackson.databind.{ ObjectMapper, JsonNode }
+import com.fasterxml.jackson.databind.{ JsonNode, ObjectMapper }
 import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
-import core.filter.FilterManager
-import core.formatter.serializer.{ ConversationSerializer, ObjectMapperFactory, MessageSerializer }
+import core.exception.StopMessageFilterException
+import core.formatter.serializer.{ ConversationSerializer, MessageSerializer, ObjectMapperFactory }
 import models.{ Conversation, Message }
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
 
 import scala.collection.Map
@@ -25,20 +24,13 @@ object ChatCtrl extends Controller {
   case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
 
   def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String, includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq()): Future[Result] = {
-    val results = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes) map (msg => {
-      if (msg nonEmpty) {
-        val result = JsObject(Seq(
-          "conversation" -> JsString(msg.get.getConversation.toString),
-          "msgId" -> JsNumber(msg.get.getMsgId),
-          "timestamp" -> JsNumber(msg.get.getTimestamp)
-        ))
-        val mapper = new ObjectMapper()
-        val node = mapper.createObjectNode()
-        node put ("conversation", msg.get.conversation.toString) put ("msgId", msg.get.msgId) put ("timestamp", msg.get.timestamp)
+    val futureMessage = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes)
 
-        HedyResults(data = Some(node))
-      } else
-        throw new Exception("未通过过滤器")
+    val results = futureMessage map (msg => {
+      val mapper = new ObjectMapper()
+      val node = mapper.createObjectNode()
+      node put ("conversation", msg.conversation.toString) put ("msgId", msg.msgId) put ("timestamp", msg.timestamp)
+      HedyResults(data = Some(node))
     })
 
     // 处理旅行问问的情况
@@ -49,7 +41,10 @@ object ChatCtrl extends Controller {
       }
     }
 
-    results
+    results recover {
+      case e: StopMessageFilterException =>
+        HedyResults.forbidden(errorMsg = Some(e.errorMsg))
+    }
   }
 
   @WithAccessLog

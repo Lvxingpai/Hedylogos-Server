@@ -3,22 +3,21 @@ package core.filter
 import java.io.File
 
 import com.typesafe.config.ConfigFactory
-import core.exception.MessageException
-import models.Message
-import core.Implicits._
 import play.api.Configuration
-import scala.concurrent.ExecutionContext.Implicits.global
+
 //import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import scala.concurrent.Future
+
 import scala.collection.SortedMap
 import scala.language.postfixOps
+
 /**
  * Created by pengyt on 2015/8/11.
  */
 object FilterManager {
 
   var filterPipeline: SortedMap[String, Filter] = SortedMap(
-    "BlackListFilter" -> new BlackListFilter() //,
+    //    "BlackListFilter" -> new BlackListFilter() //,
+    "test-filter" -> new TestFilter()
   //    "ContactFilter" -> new ContactFilter(),
   //    "GroupMemberFilter" -> new GroupMemberFilter()
   )
@@ -89,24 +88,28 @@ object FilterManager {
     filterPipeline.filterNot(filters => true)
   }
 
-  /**
-   * 处理器, 通过管道过滤
-   */
-  val process: PartialFunction[AnyRef, AnyRef] = {
-    case futureMsg0: Future[Message] =>
-      for {
-        msg0 <- futureMsg0
-      } yield {
-        filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
-          filter._2.doFilter(msg)
-        })
-      }
-    case msg0: Message =>
-      filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
-        filter._2.doFilter(msg)
-      })
-    case None => throw new MessageException(416, "no such message entity")
+  def process(input: AnyRef): AnyRef = {
+    filterPipeline.values.foldLeft(input)((v, filter) => filter.doFilter(v))
   }
+
+  //  /**
+  //   * 处理器, 通过管道过滤
+  //   */
+  //  val process: PartialFunction[AnyRef, AnyRef] = {
+  //    case futureMsg0: Future[Message] =>
+  //      for {
+  //        msg0 <- futureMsg0
+  //      } yield {
+  //        filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
+  //          filter._2.doFilter(msg)
+  //        })
+  //      }
+  //    case msg0: Message =>
+  //      filterPipeline.foldLeft[AnyRef](msg0)((msg, filter) => {
+  //        filter._2.doFilter(msg)
+  //      })
+  //    case None => throw new MessageException(416, "no such message entity")
+  //  }
   //  val process: PartialFunction[AnyRef, AnyRef] = {
   //    case futureMsg0: Future[Option[Message]] =>
   //      for {

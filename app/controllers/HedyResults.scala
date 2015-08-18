@@ -1,7 +1,6 @@
 package controllers
 
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.{ ObjectMapper, JsonNode }
+import com.fasterxml.jackson.databind.{ JsonNode, ObjectMapper }
 import play.api.http.Status._
 import play.api.mvc.{ Result, Results }
 
@@ -15,6 +14,7 @@ object HedyResults {
   object RetCode extends Enumeration {
     val OK = Value(0)
     val INVALID_ARGUMENTS = Value(100, "Invalid arguments")
+    val FORBIDDEN = Value(403, "Forbidden")
   }
 
   /**
@@ -47,6 +47,11 @@ object HedyResults {
   def ok(retCode: RetCode.Value = RetCode.OK, data: Option[JsonNode] = None, errorMsg: Option[String] = None): Result =
     HedyResults(OK, retCode, data, errorMsg)
 
-  def unprocessable(retCode: RetCode.Value = RetCode.INVALID_ARGUMENTS, data: Option[JsonNode] = None, errorMsg: Option[String] = None): Result =
+  def unprocessable(retCode: RetCode.Value = RetCode.INVALID_ARGUMENTS, data: Option[JsonNode] = None,
+    errorMsg: Option[String] = None): Result =
     HedyResults(UNPROCESSABLE_ENTITY, retCode, data, errorMsg)
+
+  def forbidden(retCode: RetCode.Value = RetCode.FORBIDDEN, data: Option[JsonNode] = None,
+    errorMsg: Option[String] = None): Result =
+    HedyResults(FORBIDDEN, retCode, data, errorMsg)
 }
