@@ -16,7 +16,7 @@ import scala.language.postfixOps
 object FilterManager {
 
   var filterPipeline: SortedMap[String, Filter] = SortedMap(
-    "BlackListFilter" -> new BlockListFilter(),
+    "BlackListFilter" -> new BlackListFilter(),
     "ContactFilter" -> new ContactFilter(),
     "GroupMemberFilter" -> new GroupMemberFilter()
   )

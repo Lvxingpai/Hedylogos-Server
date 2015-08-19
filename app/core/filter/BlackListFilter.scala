@@ -10,14 +10,14 @@ import scala.concurrent.Future
 /**
  * Created by pengyt on 2015/8/11.
  */
-class BlockListFilter extends Filter {
+class BlackListFilter extends Filter {
 
   /**
    * 检查两个用户是否存在block关系
    *
    * @return
    */
-  private def isBlocked(userA: Long, userB: Long): Future[Boolean] = FinagleFactory.client.checkBlockList(userA, userB)
+  private def isBlocked(userA: Long, userB: Long): Future[Boolean] = FinagleFactory.client.isBlocked(userA, userB)
 
   /**
    * 权限检查。根据message，如果sender在receiver的黑名单中，将抛出StopMessageFilterException的异常，终止消息过滤流水线。
