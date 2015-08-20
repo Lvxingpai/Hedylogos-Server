@@ -28,7 +28,8 @@ class BlackListFilter extends Filter {
   private def validate(message: Message): Future[Message] = {
     if ("single".equals(message.chatType)) {
       for {
-        block <- isBlocked(message.senderId, message.receiverId)
+        // sender是否在receiver的黑名单中
+        block <- isBlocked(message.receiverId, message.senderId)
       } yield {
         if (block)
           throw StopMessageFilterException("对方拒绝了您的消息")
