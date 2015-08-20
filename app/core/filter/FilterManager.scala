@@ -17,7 +17,7 @@ object FilterManager {
 
   var filterPipeline: SortedMap[String, Filter] = SortedMap(
     "BlackListFilter" -> new BlackListFilter(),
-//    "ContactFilter" -> new ContactFilter(),
+    //    "ContactFilter" -> new ContactFilter(),
     "GroupMemberFilter" -> new GroupMemberFilter()
   )
 
