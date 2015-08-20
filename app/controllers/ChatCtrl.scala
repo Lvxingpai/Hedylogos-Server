@@ -1,14 +1,14 @@
 package controllers
 
-import com.fasterxml.jackson.databind.{ ObjectMapper, JsonNode }
+import com.fasterxml.jackson.databind.{ JsonNode, ObjectMapper }
 import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
-import core.formatter.serializer.{ ConversationSerializer, ObjectMapperFactory, MessageSerializer }
+import core.exception.StopMessageFilterException
+import core.formatter.serializer.{ ConversationSerializer, MessageSerializer, ObjectMapperFactory }
 import models.{ Conversation, Message }
 import org.bson.types.ObjectId
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json._
 import play.api.mvc.{ Action, Controller, Result, Results }
 
 import scala.collection.Map
@@ -24,16 +24,12 @@ object ChatCtrl extends Controller {
   case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
 
   def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String, includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq()): Future[Result] = {
-    val results = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes) map (msg => {
-      val result = JsObject(Seq(
-        "conversation" -> JsString(msg.getConversation.toString),
-        "msgId" -> JsNumber(msg.getMsgId),
-        "timestamp" -> JsNumber(msg.getTimestamp)
-      ))
+    val futureMessage = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes)
+
+    val results = futureMessage map (msg => {
       val mapper = new ObjectMapper()
       val node = mapper.createObjectNode()
       node put ("conversation", msg.conversation.toString) put ("msgId", msg.msgId) put ("timestamp", msg.timestamp)
-
       HedyResults(data = Some(node))
     })
 
@@ -45,7 +41,10 @@ object ChatCtrl extends Controller {
       }
     }
 
-    results
+    results recover {
+      case e: StopMessageFilterException =>
+        HedyResults.forbidden(errorMsg = Some(e.errorMsg))
+    }
   }
 
   @WithAccessLog

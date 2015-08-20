@@ -4,6 +4,8 @@ import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
 import core.connector.{ HedyRedis, MorphiaFactory }
+import core.exception.StopMessageFilterException
+import core.filter.FilterManager
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
 import misc.FinagleFactory
@@ -102,12 +104,15 @@ object Chat {
     }
   }
 
-  def buildMessage(msgType: MessageType.Value, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] =
-    generateMsgId(cid) map (v => Message(msgType, contents, cid, v.get, receiver, sender, chatType))
-
-  def buildMessage(msgType: MessageType.Value, contents: String, cidList: Seq[ObjectId], receiver: Long, sender: Long, chatType: ChatType.Value): Future[Seq[Message]] = {
-    val ret = cidList map (cid => buildMessage(msgType, contents, cid, receiver, sender, chatType))
-    Future.sequence(ret)
+  def buildMessage(msgType: MessageType.Value, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] = {
+    for {
+      msgId <- generateMsgId(cid)
+      msg <- Future(Message(msgType, contents, cid, msgId.get, receiver, sender, chatType))
+      optAbbrev <- buildMessageAbbrev(msg)
+    } yield {
+      msg.abbrev = optAbbrev.orNull
+      msg
+    }
   }
 
   /**
@@ -219,21 +224,29 @@ object Chat {
       Chat.getSingleConversation(sender, receiver)
     else
       Chat.getChatGroupConversation(receiver)
+    // val msgRes = FilterManager.process(buildMessage(msgType, contents, conv.id, receiver, sender, chatType))
 
     for {
       conv <- conversation
       msg <- buildMessage(msgType, contents, conv.id, receiver, sender, chatType)
-      abbrev <- buildMessageAbbrev(msg)
-      ret <- {
-        msg.abbrev = abbrev.orNull
-
-        // 如果是单聊的情况，不要启用includes/和excludes机制
-        if (isSingleChat)
-          sendMessageToConv(msg, conv, Seq(), Seq())
-        else
-          sendMessageToConv(msg, conv, includes, excludes)
+      filteredMsg <- FilterManager.process(msg) match {
+        // 对消息进行过滤处理，并统一转换为Future
+        case v: Future[Message] => v
+        case m: Message => Future(m)
       }
-    } yield ret
+      ret <- {
+        // 发送消息
+        filteredMsg match {
+          case msg: Message =>
+            if (isSingleChat)
+              sendMessageToConv(msg, conv, Seq(), Seq())
+            else
+              sendMessageToConv(msg, conv, includes, excludes)
+        }
+      }
+    } yield {
+      ret
+    }
   }
 
   def fetchAndAckMessage(userId: Long, purgeBefore: Long): Future[Seq[Message]] = {

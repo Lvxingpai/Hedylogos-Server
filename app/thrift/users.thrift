@@ -262,6 +262,12 @@ service userservice {
   // 第三方用户(微信)登录
   UserInfo loginByOAuth(1: string code, 2:string source)
 
+  // 检查黑名单, blockA为true表示userA在userB的黑名单中, blockB为true表示userB在userA的黑名单中
+  bool isBlocked(1: i64 senderId, 2: i64 receiverId)
+
+  // 设置黑名单, userA将userB设置为黑名单
+  void updateBlackList(1: i64 userA, 2: i64 userB, 3: bool block)
+
   // 用户退出登录
   // void logout(1: i64 userId)
 
@@ -296,4 +302,9 @@ service userservice {
 
   // 获得讨论组成员
   list<UserInfo> getChatGroupMembers(1:i64 chatGroupId, 2:optional list<UserInfoProp> fields, 3:optional i64 selfId) throws (1:NotFoundException ex)
+
+  // 用户是否在某个群中
+  bool isMember(1: i64 userId, 2: i64 chatGroupId)
+
+  list<UserInfo> getUsersByTelList(1: optional list<UserInfoProp> fields, 2: list<string> tels)
 }
