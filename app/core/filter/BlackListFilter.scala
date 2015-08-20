@@ -31,7 +31,7 @@ class BlackListFilter extends Filter {
         block <- isBlocked(message.senderId, message.receiverId)
       } yield {
         if (block)
-          throw new StopMessageFilterException("对方拒绝了您的发送")
+          throw StopMessageFilterException("对方拒绝了您的消息")
         else
           message
       }

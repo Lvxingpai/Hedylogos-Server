@@ -33,7 +33,7 @@ class ContactFilter extends Filter {
         if (c)
           message
         else
-          throw StopMessageFilterException("您尚未对方好友, 无法发送消息给对方")
+          throw StopMessageFilterException("您不是对方好友, 无法发送消息给对方")
       }
     } else {
       Future { message }
