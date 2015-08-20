@@ -30,7 +30,7 @@ object CoreConfig {
       case "dev" =>
         Seq(
           EtcdConfBuilder().addKey("hedylogos-dev", "hedylogos").build(),
-          EtcdServiceBuilder().addKey("mongo-dev", "mongo").addKey("smscenter").addKey("yunkai")
+          EtcdServiceBuilder().addKey("mongo-dev", "mongo").addKey("smscenter").addKey("yunkai-dev", "yunkai")
             .addKey("redis-main", "redis").build()
         )
       case _ => Seq()
