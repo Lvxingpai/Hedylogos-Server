@@ -4,7 +4,6 @@ import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
 import core.connector.{ HedyRedis, MorphiaFactory }
-import core.exception.StopMessageFilterException
 import core.filter.FilterManager
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
@@ -15,10 +14,10 @@ import org.bson.types.ObjectId
 import org.mongodb.morphia.query.UpdateOperations
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
+import scala.collection.JavaConversions._
 import scala.collection.Map
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.collection.JavaConversions._
 
 /**
  * Created by zephyre on 4/20/15.
@@ -132,15 +131,6 @@ object Chat {
           (cg.participants filter (_ != sender)).toSet ++ includes -- excludes)
     }
 
-    val allMembers = futureTargets map (s => (s + sender).toSeq)
-
-    //    val allMembers = chatType match {
-    //      case item if item.id == ChatType.SINGLE.id => Future(Seq(sender, receiver))
-    //      case item if item.id == ChatType.CHATGROUP.id =>
-    //        FinagleCore.getChatGroup(receiver) map (cg =>
-    //          (cg.participants.toSet ++ includes -- excludes).toSeq)
-    //    }
-
     // 设置了消息免打扰的用户
     val futureMuted = futureTargets map (members => {
       Option(conversation.muteNotif) map (_.toSeq) getOrElse Seq() filter members.contains
@@ -148,14 +138,16 @@ object Chat {
 
     for {
       targets <- futureTargets
+      members <- futureTargets map (_.toSeq)
+      msgWithTargets <- futureTargets map (v => {
+        msg.targets = (v + sender).toSeq
+        msg
+      })
       muted <- futureMuted
-      members <- allMembers
-      msg1 <- MongoStorage.sendMessage(msg, members)
-      //      redisResult <- RedisMessaging.sendMessage(msg1, targets.toSeq)
-      redisResult <- RedisMessaging.sendMessage(msg1, members)
-      //      _ <- GetuiService.sendMesageWithMute(redisResult, targets.toSeq, muted)
-      _ <- GetuiService.sendMesageWithMute(redisResult, members, muted)
-    } yield msg1
+      _ <- MongoStorage.sendMessage(msgWithTargets, members)
+      _ <- RedisMessaging.sendMessage(msgWithTargets, members)
+      _ <- GetuiService.sendMesageWithMute(msgWithTargets, members, muted)
+    } yield msg
   }
 
   /**
