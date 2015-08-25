@@ -1,6 +1,6 @@
 package core.filter
 
-import core.exception.StopMessageFilterException
+import core.exception.{ ContactException, StopMessageFilterException }
 import misc.FinagleFactory
 import models.Message
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,7 +33,7 @@ class ContactFilter extends Filter {
         if (c)
           message
         else
-          throw StopMessageFilterException("您不是对方好友, 无法发送消息给对方")
+          throw ContactException("您不是对方好友, 无法发送消息给对方")
       }
     } else {
       Future { message }
