@@ -137,7 +137,6 @@ object Chat {
     })
 
     for {
-      targets <- futureTargets
       members <- futureTargets map (_.toSeq)
       msgWithTargets <- futureTargets map (v => {
         msg.targets = (v + sender).toSeq
