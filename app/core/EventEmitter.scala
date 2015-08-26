@@ -29,9 +29,9 @@ object EventEmitter {
     val host = servers.head.getString("host").get
     val port = servers.head.getInt("port").get
 
-    val username = conf.getString("hedylogos.rabbitmq.username").get
-    val password = conf.getString("hedylogos.rabbitmq.password").get
-    val virtualHost = conf.getString("hedylogos.rabbitmq.virtualhost").get
+    val username = conf.getString("hedylogos.server.rabbitmq.username").get
+    val password = conf.getString("hedylogos.server.rabbitmq.password").get
+    val virtualHost = conf.getString("hedylogos.server.rabbitmq.virtualhost").get
 
     ApiumPlant(ConnectionParam(host, port, username, password, virtualHost), "hedylogos", Seq(evtFilterMessage))
   }

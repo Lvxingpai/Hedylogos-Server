@@ -14,7 +14,8 @@ import org.apache.thrift.protocol.TBinaryProtocol
  */
 object FinagleFactory {
   lazy val client = {
-    val backends = GlobalConfig.playConf.getConfig("backends.yunkai").get
+    val conf = GlobalConfig.playConf
+    val backends = conf.getConfig("backends.yunkai").get
     val services = backends.subKeys.toSeq map (backends.getConfig(_).get)
 
     val server = services.head.getString("host").get -> services.head.getInt("port").get
