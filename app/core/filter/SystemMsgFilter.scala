@@ -1,7 +1,9 @@
 package core.filter
 
+import core.EventEmitter
 import core.exception.BlackListException
 import misc.FinagleFactory
+import scala.concurrent.ExecutionContext.Implicits.global
 import models.Message
 
 import scala.concurrent.Future
@@ -21,24 +23,15 @@ class SystemMsgFilter extends Filter {
   }
 
   /**
-   * 权限检查。根据message，如果sender在receiver的黑名单中，将抛出StopMessageFilterException的异常，终止消息过滤流水线。
+   * 触发派派的活动
    *
    * @param message 需要处理的消息
    * @return
    */
-  private def validate(message: Message): Future[Message] = {
-    if ("single".equals(message.chatType)) {
-      for {
-        // sender是否在receiver的黑名单中
-        block <- isBlocked(message.receiverId, message.senderId)
-      } yield {
-        if (block)
-          throw BlackListException("对方拒绝了您的消息")
-        else
-          message
-      }
-    } else {
-      Future { message }
+  private def emit(message: Message): Unit = {
+    if ("single".equals(message.chatType) && isSystemAccout(message.receiverId)) {
+      // 触发事件
+
     }
   }
 
@@ -46,13 +39,14 @@ class SystemMsgFilter extends Filter {
    *
    */
   override val doFilter: PartialFunction[AnyRef, AnyRef] = {
-    case futureMsg: Future[Message] =>
-      for {
-        msg <- futureMsg
-        validatedMessage <- validate(msg)
-      } yield {
-        validatedMessage
-      }
-    case msg: Message => validate(msg)
+    case futureMsg: Future[Message] => for {
+      msg <- futureMsg
+    } yield {
+      emit(msg)
+      msg
+    }
+    case msg: Message =>
+      emit(msg)
+      Future { msg }
   }
 }
