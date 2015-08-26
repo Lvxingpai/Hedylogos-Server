@@ -1,6 +1,6 @@
 package core.filter
 
-import core.exception.StopMessageFilterException
+import core.exception.{ GroupMemberException, StopMessageFilterException }
 import misc.FinagleFactory
 import models.Message
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,7 +33,7 @@ class GroupMemberFilter extends Filter {
         if (m)
           message
         else
-          throw StopMessageFilterException("您还不是群成员")
+          throw GroupMemberException("您还不是群成员")
       }
     } else {
       Future { message }

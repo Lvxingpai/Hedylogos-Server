@@ -1,6 +1,6 @@
 package core.filter
 
-import core.exception.StopMessageFilterException
+import core.exception.{ BlackListException, StopMessageFilterException }
 import misc.FinagleFactory
 import models.Message
 import core.Implicits.TwitterConverter.twitterToScalaFuture
@@ -32,7 +32,7 @@ class BlackListFilter extends Filter {
         block <- isBlocked(message.receiverId, message.senderId)
       } yield {
         if (block)
-          throw StopMessageFilterException("对方拒绝了您的消息")
+          throw BlackListException("对方拒绝了您的消息")
         else
           message
       }
