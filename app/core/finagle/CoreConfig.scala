@@ -23,13 +23,15 @@ object CoreConfig {
       case "production" =>
         Seq(
           EtcdConfBuilder().addKey("hedylogos").build(),
-          EtcdServiceBuilder().addKey("mongo").addKey("smscenter").addKey("yunkai").addKey("redis-main", "redis")
+          EtcdServiceBuilder().addKey("mongo").addKey("smscenter").addKey("yunkai")
+            .addKey("redis-main", "redis").addKey("rabbitmq")
             .build()
         )
       case "dev" =>
         Seq(
           EtcdConfBuilder().addKey("hedylogos-dev", "hedylogos").build(),
-          EtcdServiceBuilder().addKey("mongo-dev", "mongo").addKey("smscenter").addKey("yunkai-dev", "yunkai")
+          EtcdServiceBuilder().addKey("mongo-dev", "mongo").addKey("smscenter")
+            .addKey("yunkai-dev", "yunkai").addKey("rabbitmq")
             .addKey("redis-main", "redis").build()
         )
       case _ => Seq()
