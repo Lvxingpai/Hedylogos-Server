@@ -41,6 +41,7 @@ libraryDependencies ++= Seq(
   "org.springframework" % "spring-tx" % springVersion,
   "javax.persistence" % "persistence-api" % "1.0.2",
   "ch.qos.logback" % "logback-classic" % "1.1.3",
+  "com.lvxingpai" %% "apium" % "0.1-SNAPSHOT",
   jdbc,
   anorm,
   cache,

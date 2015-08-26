@@ -15,6 +15,13 @@ object HedyResults {
     val OK = Value(0)
     val INVALID_ARGUMENTS = Value(100, "Invalid arguments")
     val FORBIDDEN = Value(403, "Forbidden")
+    // 权限问题的code在300-319之间
+    // A被B加入黑名单, 禁止A向B发送消息
+    val FORBIDDEN_BLACKLIST = Value(300, "Forbidden")
+    // 非群成员禁止向群中发送消息
+    val FORBIDDEN_NOTMEMBER = Value(301, "Forbidden")
+    // 非好友, 禁止发送消息
+    val FORBIDDEN_NOTCONTACT = Value(302, "Forbidden")
   }
 
   /**
