@@ -6,7 +6,7 @@ import com.lvxingpai.smscenter.SmsCenter.{ FinagledClient => SmsClient }
 import com.lvxingpai.yunkai.Userservice.{ FinagledClient => YunkaiClient }
 import com.twitter.finagle.builder.ClientBuilder
 import com.twitter.finagle.thrift.ThriftClientFramedCodec
-import core.finagle.CoreConfig
+import core.GlobalConfig
 import org.apache.thrift.protocol.TBinaryProtocol
 
 /**
@@ -14,7 +14,7 @@ import org.apache.thrift.protocol.TBinaryProtocol
  */
 object FinagleFactory {
   lazy val client = {
-    val backends = CoreConfig.conf.getConfig("backends.yunkai").get
+    val backends = GlobalConfig.playConf.getConfig("backends.yunkai").get
     val services = backends.subKeys.toSeq map (backends.getConfig(_).get)
 
     val server = services.head.getString("host").get -> services.head.getInt("port").get
@@ -30,7 +30,7 @@ object FinagleFactory {
   }
 
   lazy val smsClient = {
-    val backends = CoreConfig.conf.getConfig("backends.smscenter").get
+    val backends = GlobalConfig.playConf.getConfig("backends.smscenter").get
     val servers = for {
       subKey <- backends.subKeys.toSeq
       conf <- backends.getConfig(subKey)
