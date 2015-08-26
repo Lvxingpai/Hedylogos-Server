@@ -35,14 +35,6 @@ object ChatCtrl extends Controller {
       HedyResults(data = Some(node))
     })
 
-    // 处理旅行问问的情况
-    val wenwenId = 10001
-    if (receiver == wenwenId) {
-      Future {
-        ChatCtrl.sendMessageBase(0, "亲，欢迎使用旅行问问功能，好吧，我是个机器人，不过目前这个版本我还在完善中，敬请期待下个版本的我。", sender, wenwenId, "single")
-      }
-    }
-
     results recover {
       case e: BlackListException =>
         HedyResults.forbidden(HedyResults.RetCode.FORBIDDEN_BLACKLIST, errorMsg = Some(e.errorMsg))
