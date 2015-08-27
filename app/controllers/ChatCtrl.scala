@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.{ JsonNode, ObjectMapper }
 import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
-import core.exception.{ GroupMemberException, ContactException, BlackListException, StopMessageFilterException }
+import core.exception.{ BlackListException, ContactException, GroupMemberException }
 import core.formatter.serializer.{ ConversationSerializer, MessageSerializer, ObjectMapperFactory }
 import models.{ Conversation, Message }
 import org.bson.types.ObjectId
@@ -15,8 +15,6 @@ import scala.collection.Map
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.postfixOps
-
-import controllers.HedyResults
 
 /**
  * Created by zephyre on 4/23/15.

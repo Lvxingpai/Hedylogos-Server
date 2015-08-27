@@ -25,7 +25,7 @@ object GlobalConfig {
 
     val isProduction = runlevel == "production"
 
-    val mongoKey = if (isProduction) "mongo" else "mongo-dev"
+    val mongoKey = if (isProduction) "mongo-production" else "mongo-dev"
     val yunkaiKey = if (isProduction) "yunkai" else "yunkai-dev"
     val rabbitmqKey = "rabbitmq"
     val redisKey = "redis-main"
