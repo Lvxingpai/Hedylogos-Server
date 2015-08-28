@@ -3,7 +3,6 @@ package core
 import core.connector.HedyRedis
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 /**
@@ -12,16 +11,26 @@ import scala.concurrent.Future
  * Created by zephyre on 4/20/15.
  */
 object User {
-  def userId2key(userId: Long): String = s"hedy:users/$userId"
+  def userId2key(userId: Long) = s"hedy:users/$userId"
 
-  def login(userId: Long, regId: String, deviceToken: Option[String] = None): Future[Unit] = {
+  def clientId2key(clientId: String) = s"hedy:getui/clientIds/$clientId"
+
+  def login(userId: Long, clientId: String): Future[Unit] = {
     Future {
       HedyRedis.pool.withClient(client => {
-        client.hmset(userId2key(userId),
-          Map("regId" -> regId, "deviceToken" -> deviceToken.getOrElse(""), "loginTs" -> System.currentTimeMillis,
-            "status" -> "login"))
-        val clientIdKey = s"hedy:getui/clientIds/$regId"
-        client.set(clientIdKey, userId)
+        val redisUserKey = userId2key(userId)
+        val redisClientIdKey = clientId2key(clientId)
+
+        // 查看当前的clientId是否被注册到了其它的UserId上。如果是的话，需要解除之前的userId-clientId绑定关系
+        for {
+          unboundUserId <- client.get(redisClientIdKey) map (_.toLong)
+        } yield {
+          client.del(userId2key(unboundUserId))
+        }
+
+        client.hmset(redisUserKey,
+          Map("clientId" -> clientId, "loginTs" -> System.currentTimeMillis))
+        client.set(redisClientIdKey, userId)
       })
     }
   }
@@ -29,36 +38,40 @@ object User {
   def logout(userId: Long): Future[Unit] = {
     Future {
       HedyRedis.pool.withClient(client => {
-        // 移除clientId
-        val key = userId2key(userId)
-        val clientId = client.hget(key, "regId")
+        val userKey = userId2key(userId)
 
-        // 需要移除的键：key以及clientId
-        val removedKeys = key +: clientId.map(v => Seq(s"hedy:getui/clientIds/$v")).getOrElse(Seq())
-        client.del(removedKeys.head, removedKeys.tail: _*)
+        // 移除clientId
+        for {
+          clientId <- client.hget(userKey, "clientId")
+        } yield {
+          client.del(clientId2key(clientId))
+        }
+
+        client.del(userKey)
       })
     }
   }
 
+  /**
+   * 获得用户的登录信息（主要是clientId）
+   * @param userId 用户的ID
+   * @return
+   */
   def loginInfo(userId: Long): Future[Option[Map[String, Any]]] = {
     Future {
-      val result = HedyRedis.pool.withClient(_.hgetall[String, String](userId2key(userId)).get)
-      val items = ArrayBuffer[(String, Any)]()
-      if (result.nonEmpty) {
-        Array("regId", "status").foreach(key => items += key -> result(key))
-        Array("loginTs", "logoutTs").foreach(key => {
-          val value = for {
-            k <- result.get(key)
-          } yield k.toLong
-          items += key -> value
-        })
-
-        val dtKey = "deviceToken"
-        items += dtKey -> result.get(dtKey)
-
-        Some(items.toMap)
-      } else {
-        None
+      for {
+        result <- HedyRedis.pool.withClient(_.hgetall[String, String](userId2key(userId)))
+      } yield {
+        (result map (item => {
+          val key = item._1
+          val value = item._2
+          val newVal = key match {
+            case "clientId" => value
+            case "loginTs" => value.toLong
+            case _ => None
+          }
+          key -> newVal
+        })) filter (item => item._2 != None)
       }
     }
   }

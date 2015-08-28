@@ -17,8 +17,8 @@ object UserCtrl extends Controller {
       {
         val jsonNode = request.body.asJson.get
         val userId = (jsonNode \ "userId").asOpt[Long].get
-        val regId = (jsonNode \ "regId").asOpt[String].get
-        User.login(userId, regId).map(v => HedyResults())
+        val clientId = (jsonNode \ "regId").asOpt[String].get
+        User.login(userId, clientId).map(v => HedyResults())
       }
   }
 
