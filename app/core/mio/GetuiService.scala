@@ -86,18 +86,18 @@ object GetuiService extends MessageDeliever {
   }
 
   def sendMesageWithMute(message: Message, allTargets: Seq[Long], mutedTargets: Seq[Long] = Seq()): Future[Message] = {
-    // 将targets中的userId取出来，读取regId（类型：Seq[String]）
-    def userId2regId(userId: Long): Future[Option[(Long, String)]] = {
+    // 将targets中的userId取出来，读取clientId（类型：Seq[String]）
+    def userId2clientId(userId: Long): Future[Option[(Long, String)]] = {
       for {
         optionMap <- User.loginInfo(userId)
       } yield for {
         m <- optionMap
-        regId <- m.get("regId")
-      } yield userId -> regId.toString
+        clientId <- m.get("clientId")
+      } yield userId -> clientId.toString
     }
 
     for {
-      ret <- Future.sequence(allTargets map userId2regId)
+      ret <- Future.sequence(allTargets map userId2clientId)
     } yield {
       // 建立完整的 userId -> clientId 映射
       val clientIdMap = Map(ret filter (_.nonEmpty) map (_.get): _*)
