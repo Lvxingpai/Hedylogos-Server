@@ -164,4 +164,12 @@ object ChatCtrl extends Controller {
       HedyResults(data = Some(result))
     }
   })
+
+  def pong() = Action.async(request => {
+    val node = new ObjectMapper().createObjectNode()
+    node.put("ack", "pong")
+    Future {
+      HedyResults(data = Some(node))
+    }
+  })
 }
