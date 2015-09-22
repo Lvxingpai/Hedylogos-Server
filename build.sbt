@@ -45,7 +45,8 @@ libraryDependencies ++= Seq(
   jdbc,
   anorm,
   cache,
-  ws
+  ws,
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.2.1" % "test"
 )
 
 publishTo := {
