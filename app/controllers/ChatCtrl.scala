@@ -1,7 +1,7 @@
 package controllers
 
 import com.fasterxml.jackson.databind.{ JsonNode, ObjectMapper }
-import core.Chat
+import core.{ Chat, ChatImpl }
 import core.Implicits._
 import core.aspectj.WithAccessLog
 import core.exception.{ BlackListException, ContactException, GroupMemberException }
@@ -19,12 +19,22 @@ import scala.language.postfixOps
 /**
  * Created by zephyre on 4/23/15.
  */
+class ChatCtrl(var iChat: Chat) {
+  var chat: Chat = iChat
+
+  def this(chatIns: Option[Chat] = None) =
+    this(chatIns.getOrElse(ChatImpl))
+}
+
 object ChatCtrl extends Controller {
+
+  val chatCtrl = new ChatCtrl
+  val chat = chatCtrl.chat
 
   case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
 
   def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String, includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq()): Future[Result] = {
-    val futureMessage = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes)
+    val futureMessage = chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes)
 
     val results = futureMessage map (msg => {
       val mapper = new ObjectMapper()
@@ -52,7 +62,7 @@ object ChatCtrl extends Controller {
         } yield {
           val muteOpt = (body \ "mute").asOpt[Boolean]
           val settings = Map("mute" -> muteOpt).filter(_._2 nonEmpty).mapValues(_.get)
-          Chat.opConversationProperty(uid, new ObjectId(cid), settings) map (_ => HedyResults())
+          chat.opConversationProperty(uid, new ObjectId(cid), settings) map (_ => HedyResults())
         }
         result getOrElse Future(Results.BadRequest)
       }
@@ -67,7 +77,7 @@ object ChatCtrl extends Controller {
         } yield {
           val muteOpt = (body \ "mute").asOpt[Boolean]
           val settings = Map("mute" -> muteOpt).filter(_._2 nonEmpty).mapValues(_.get)
-          Chat.opConversationProperty(uid, targetId, settings) map (_ => HedyResults())
+          chat.opConversationProperty(uid, targetId, settings) map (_ => HedyResults())
         }
         result getOrElse Future(Results.BadRequest)
       }
@@ -101,7 +111,7 @@ object ChatCtrl extends Controller {
       timestamp <- (body \ "purgeBefore").asOpt[Long] orElse Some(0L)
     } yield {
       for {
-        msgList <- Chat.fetchAndAckMessage(userId, timestamp)
+        msgList <- chat.fetchAndAckMessage(userId, timestamp)
       } yield {
         val mapper = ObjectMapperFactory().addSerializer(classOf[Message], MessageSerializer[Message]()).build()
         val data = mapper.valueToTree[JsonNode](msgList)
@@ -114,7 +124,7 @@ object ChatCtrl extends Controller {
 
   def getConversationProperty(uid: Long, cid: String) = Action.async(request => {
     for {
-      conv <- Chat.getConversation(new ObjectId(cid))
+      conv <- chat.getConversation(new ObjectId(cid))
     } yield {
       if (conv nonEmpty) {
         val c = conv.get
@@ -141,7 +151,7 @@ object ChatCtrl extends Controller {
     val userIds = ArrayBuffer[Long]()
     val convList = targetIdsSeq map (targetId => {
       for {
-        conv <- Chat.getConversation(uid, targetId)
+        conv <- chat.getConversation(uid, targetId)
       } yield {
         if (conv nonEmpty) {
           val c = conv.get

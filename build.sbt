@@ -46,7 +46,8 @@ libraryDependencies ++= Seq(
   anorm,
   cache,
   ws,
-  "org.scalamock" %% "scalamock-scalatest-support" % "3.2.1" % "test"
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.2.1" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.12.5" % "test"
 )
 
 publishTo := {
