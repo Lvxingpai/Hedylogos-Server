@@ -196,6 +196,8 @@ object Chat {
           Some("发来了一个酒店")
         case item if item == COMMODITY.id =>
           Some("发来了一个商品")
+        case item if item == ORDER.id =>
+          Some("发来了一条订单动态")
         case _ =>
           None
       }
