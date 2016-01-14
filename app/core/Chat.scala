@@ -1,19 +1,20 @@
 package core
 
+import com.lvxingpai.inject.morphia.MorphiaMap
 import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
-import core.connector.{ HedyRedis, MorphiaFactory }
+import core.connector.HedyRedis
 import core.filter.FilterManager
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
-import misc.FinagleFactory
 import models.Message.{ ChatType, MessageType }
 import models._
 import org.bson.types.ObjectId
 import org.mongodb.morphia.query.UpdateOperations
+import play.api.Play
+import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-
 import scala.collection.JavaConversions._
 import scala.collection.Map
 import scala.concurrent.Future
@@ -23,7 +24,10 @@ import scala.language.postfixOps
  * Created by zephyre on 4/20/15.
  */
 object Chat {
-  val ds = MorphiaFactory.datastore
+  val ds = {
+    val morphiaMap = Play.application.injector instanceOf classOf[MorphiaMap]
+    morphiaMap.map.get("hedylogos").get
+  }
 
   /**
    * 获得一个单聊的Conversation
@@ -71,7 +75,11 @@ object Chat {
     }
 
     def buildChatGroupConversation(gid: Long): Future[Conversation] = {
-      val future = FinagleFactory.client.getChatGroup(gid, None) map (g => {
+      import com.lvxingpai.yunkai.Userservice.{ FinagledClient => YunkaiClient }
+
+      val client = Play.application.injector instanceOf classOf[YunkaiClient]
+
+      val future = client.getChatGroup(gid, None) map (g => {
         val c = Conversation(new ObjectId(g.id), gid)
         try {
           ds.save[Conversation](c)
@@ -222,7 +230,7 @@ object Chat {
       msg <- buildMessage(msgType, contents, conv.id, receiver, sender, chatType)
       filteredMsg <- FilterManager.process(msg) match {
         // 对消息进行过滤处理，并统一转换为Future
-        case v: Future[Message] => v
+        case v: Future[_] => v
         case m: Message => Future(m)
       }
       ret <- {

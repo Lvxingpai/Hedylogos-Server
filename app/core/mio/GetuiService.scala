@@ -5,9 +5,10 @@ import com.gexin.rp.sdk.http.IGtPush
 import com.gexin.rp.sdk.template.TransmissionTemplate
 import core.formatter.serializer.ObjectMapperFactory
 import core.formatter.serializer.InstantMessageSerializer
-import core.{ GlobalConfig, User }
+import core.{ User }
 import models.Message
-import play.api.Logger
+import play.api.inject.BindingKey
+import play.api.{ Configuration, Play, Logger }
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
@@ -21,7 +22,13 @@ import scala.language.postfixOps
  */
 object GetuiService extends MessageDeliever {
 
-  val conf = GlobalConfig.playConf.getConfig("hedylogos").get
+  private lazy val conf = {
+    import Play.current
+
+    Play.application.injector instanceOf (BindingKey(classOf[Configuration]) qualifiedWith "default") getConfig
+      "hedylogos" getOrElse Configuration.empty
+  }
+
   val master = conf.getString("getui.master").get
   val host = conf.getString("getui.host").get
   val gtAppId = conf.getString("getui.appId").get

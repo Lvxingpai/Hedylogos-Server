@@ -329,4 +329,3 @@ service userservice {
   // 根据电话批量查询用户信息
   list<UserInfo> getUsersByTelList(1: optional list<UserInfoProp> fields, 2: list<string> tels)
 }
-

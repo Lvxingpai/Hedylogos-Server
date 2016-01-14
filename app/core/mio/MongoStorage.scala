@@ -1,8 +1,9 @@
 package core.mio
 
-import core.connector.MorphiaFactory
+import com.lvxingpai.inject.morphia.MorphiaMap
 import models.Message
 import org.bson.types.ObjectId
+import play.api.Play
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.collection.JavaConversions._
@@ -13,7 +14,12 @@ import scala.language.postfixOps
  * Created by zephyre on 4/22/15.
  */
 object MongoStorage extends MessageDeliever {
-  private val ds = MorphiaFactory.datastore
+  private val ds = {
+    import Play.current
+
+    val morphiaMap = Play.application.injector instanceOf classOf[MorphiaMap]
+    morphiaMap.map.get("hedylogos").get
+  }
 
   override def sendMessage(message: Message, target: Seq[Long]): Future[Message] = {
     Future {

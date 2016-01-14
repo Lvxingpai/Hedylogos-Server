@@ -1,19 +1,25 @@
 package controllers
 
+import javax.inject.{ Inject, Named }
+import play.api.Play.current
 import com.fasterxml.jackson.databind.ObjectMapper
-import core.GlobalConfig
-import core.GlobalConfig.playConf
+import com.lvxingpai.inject.morphia.MorphiaMap
 import core.aspectj.WithAccessLog
 import core.qiniu.QiniuClient
 import models.Message.MessageType
 import org.bson.types.ObjectId
+import play.api.{ Play, Configuration }
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller }
 
 /**
  * Created by zephyre on 4/25/15.
  */
-object MiscCtrl extends Controller {
+class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datastore: MorphiaMap) extends Controller {
+
+  implicit val ds = datastore.map.get("hedylogos").get
+
+  implicit val playConf = configuration.getConfig("hedylogos") getOrElse Configuration.empty
 
   @WithAccessLog
   def uploadToken = Action {
@@ -22,8 +28,6 @@ object MiscCtrl extends Controller {
         val jsonBody = request.body.asJson.get
         val key = java.util.UUID.randomUUID.toString
         val msgType = MessageType((jsonBody \ "msgType").asOpt[Int].get)
-
-        implicit val playConf = GlobalConfig.playConf.getConfig("hedylogos")
 
         val token = sendMessageToken(key = key, msgType = msgType)
 
@@ -155,7 +159,8 @@ object MiscCtrl extends Controller {
           case _ => throw new IllegalArgumentException
         }).toString()
 
-        ChatCtrl.sendMessageBase(msgType.id, contents, recvId.get, senderId, chatType)
+        val ctrl = Play.application.injector instanceOf classOf[ChatCtrl]
+        ctrl.sendMessageBase(msgType.id, contents, recvId.get, senderId, chatType)
         //        ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId.get, msgType.id, Some(contents)))
       }
   }
@@ -212,7 +217,9 @@ object MiscCtrl extends Controller {
         ) ++ styleSet.toSeq).toString()
       case _ => throw new IllegalArgumentException
     }
-    ChatCtrl.sendMessageBase(msgType, contents, recvId.get, senderId, chatType)
+
+    val ctrl = Play.application.injector instanceOf classOf[ChatCtrl]
+    ctrl.sendMessageBase(msgType, contents, recvId.get, senderId, chatType)
     //    ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId.get, msgType, Some(contents)))
   }
 

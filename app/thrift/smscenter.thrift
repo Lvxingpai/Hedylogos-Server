@@ -8,4 +8,5 @@ exception SmsCenterException {
 
 service SmsCenter {
   string sendSms(1:string message, 2:list<string> recipients) throws (1:SmsCenterException ex)
+  string ping()
 }

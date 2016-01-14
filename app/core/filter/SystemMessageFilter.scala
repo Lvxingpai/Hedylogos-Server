@@ -1,7 +1,6 @@
 package core.filter
 
 import com.fasterxml.jackson.databind.node.{ IntNode, LongNode, TextNode }
-import core.EventEmitter
 import models.Message
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -45,7 +44,7 @@ class SystemMessageFilter extends Filter {
       // 触发事件
       // 过期时间：1小时
       val expiration = 3600 * 1000L
-      EventEmitter.emitEvent(EventEmitter.evtFilterMessage, eventArgs = args, expire = Some(expiration))
+      //      EventEmitter.emitEvent(EventEmitter.evtFilterMessage, eventArgs = args, expire = Some(expiration))
     }
 
     message

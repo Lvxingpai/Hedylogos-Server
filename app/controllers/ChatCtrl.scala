@@ -1,6 +1,9 @@
 package controllers
 
+import javax.inject.{ Named, Inject }
+
 import com.fasterxml.jackson.databind.{ JsonNode, ObjectMapper }
+import com.lvxingpai.inject.morphia.MorphiaMap
 import core.Chat
 import core.Implicits._
 import core.aspectj.WithAccessLog
@@ -8,6 +11,7 @@ import core.exception.{ BlackListException, ContactException, GroupMemberExcepti
 import core.formatter.serializer.{ ConversationSerializer, MessageSerializer, ObjectMapperFactory }
 import models.{ Conversation, Message }
 import org.bson.types.ObjectId
+import play.api.Configuration
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.mvc.{ Action, Controller, Result, Results }
 
@@ -19,7 +23,7 @@ import scala.language.postfixOps
 /**
  * Created by zephyre on 4/23/15.
  */
-object ChatCtrl extends Controller {
+class ChatCtrl @Inject() (@Named("default") configuration: Configuration, datastore: MorphiaMap) extends Controller {
 
   case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
 
