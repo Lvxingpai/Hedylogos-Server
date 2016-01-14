@@ -9,8 +9,10 @@ import core.GlobalConfig.playConf
 object QiniuClient {
 
   private def getConfig: Map[String, String] = {
-    Map("accessKey" -> playConf.getString("hedylogos.qiniu.accessKey").get,
-      "secretKey" -> playConf.getString("hedylogos.qiniu.secretKey").get)
+    Map(
+      "accessKey" -> playConf.getString("hedylogos.qiniu.accessKey").get,
+      "secretKey" -> playConf.getString("hedylogos.qiniu.secretKey").get
+    )
   }
 
   val secretKey = getConfig apply "secretKey"

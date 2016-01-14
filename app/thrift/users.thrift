@@ -37,6 +37,12 @@ struct ContactRequest {
   8:i64 expire
 }
 
+struct SecretKey {
+  1: string key,
+  2: i64 timestamp,
+  3: optional i64 expire
+}
+
 // 用户信息
 struct UserInfo {
   1: string id,
@@ -50,10 +56,12 @@ struct UserInfo {
   9: optional i64 loginTime,
   10: optional i64 logoutTime,
   11: list<string> loginSource,
+  15: optional string email,
   20: optional string memo,
   100: list<Role> roles,
   110: optional string birth,
-  120: optional string residence
+  120: optional string residence,
+  200: optional SecretKey secretKey
 }
 
 // 讨论组信息
@@ -101,6 +109,7 @@ enum UserInfoProp {
   GENDER,
   SIGNATURE,
   TEL,
+  EMAIL,
   LOGIN_STATUS,
   LOGIN_TIME,
   LOGOUT_TIME,
@@ -165,6 +174,9 @@ exception OverQuotaLimitException {
 }
 
 service userservice {
+  // 测试接口, 返回"pong"
+  string ping()
+
   // 获得单个用户信息
   UserInfo getUserById(1:i64 userId, 2: optional list<UserInfoProp> fields, 3: optional i64 selfId) throws (1:NotFoundException ex)
 
@@ -226,6 +238,9 @@ service userservice {
   // 第3个参数表示登录设备的来源, 比如：web或者安卓
   UserInfo login(1:string loginName, 2:string password, 3:string source) throws (1:AuthException ex)
 
+  // 获得某个用户的secret key
+  string getUserSecretKey(1:i64 userId) throws (1:NotFoundException ex)
+
   // 验证用户密码
   bool verifyCredential(1:i64 userId, 2:string password) throws (1:AuthException ex)
 
@@ -255,6 +270,11 @@ service userservice {
 
   // 新用户注册。支持的UserInfoProp暂时只有tel
   UserInfo createUser(1:string nickName, 2:string password, 3:optional map<UserInfoProp, string> miscInfo) throws (1:ResourceConflictException ex1, 2: InvalidArgsException ex2)
+
+  // 新用户注册. regType表明是通过哪一种途径注册的:
+  // tel: 电话号码
+  // email: 邮箱
+  UserInfo createUserPoly(1:string regType, 2:string regName, 3:string password, 4:optional map<UserInfoProp, string> miscInfo) throws (1:ResourceConflictException ex1, 2:InvalidArgsException ex2)
 
   // 搜索用户(参数1表示根据哪些字段搜索, 参数2表示返回的字段, 参数3表示当前页从第几个开始, 4表示一页返回多少个)
   list<UserInfo> searchUserInfo(1: map<UserInfoProp, string> queryFields, 2: optional list<UserInfoProp> fields, 3: optional i32 offset, 4: optional i32 count)
@@ -308,7 +328,5 @@ service userservice {
 
   // 根据电话批量查询用户信息
   list<UserInfo> getUsersByTelList(1: optional list<UserInfoProp> fields, 2: list<string> tels)
-
-  // 给数据库刷contactA和contactB字段, 用完可删
-  void setContact()
 }
+

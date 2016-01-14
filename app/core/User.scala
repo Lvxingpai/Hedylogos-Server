@@ -28,8 +28,10 @@ object User {
           client.del(userId2key(unboundUserId))
         }
 
-        client.hmset(redisUserKey,
-          Map("clientId" -> clientId, "loginTs" -> System.currentTimeMillis))
+        client.hmset(
+          redisUserKey,
+          Map("clientId" -> clientId, "loginTs" -> System.currentTimeMillis)
+        )
         client.set(redisClientIdKey, userId)
       })
     }

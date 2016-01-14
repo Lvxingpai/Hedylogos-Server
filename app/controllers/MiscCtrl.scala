@@ -143,7 +143,8 @@ object MiscCtrl extends Controller {
 
             Seq(
               "url" -> JsString(QiniuClient.privateDownloadUrl(baseUrl, expire)),
-              "duration" -> JsNumber(duration))
+              "duration" -> JsNumber(duration)
+            )
           case MessageType.LOCATION =>
             Seq(
               "snapshot" -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle("location"), expire)),
@@ -187,7 +188,8 @@ object MiscCtrl extends Controller {
 
         JsObject(Seq(
           "url" -> JsString(QiniuClient.privateDownloadUrl(baseUrl, expire)),
-          "duration" -> JsNumber(duration))).toString()
+          "duration" -> JsNumber(duration)
+        )).toString()
       case 2 =>
         val imageInfo = Json.parse(postMap.get("imageInfo").get)
 
