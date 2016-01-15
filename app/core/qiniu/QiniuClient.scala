@@ -12,7 +12,7 @@ object QiniuClient {
   private val playConf = {
     import Play.current
 
-    Play.application.injector instanceOf (BindingKey(classOf[Configuration]) qualifiedWith "ddefault")
+    Play.application.injector instanceOf (BindingKey(classOf[Configuration]) qualifiedWith "default")
   }
 
   private def getConfig: Map[String, String] = {

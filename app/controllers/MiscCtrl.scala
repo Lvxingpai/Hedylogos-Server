@@ -75,8 +75,8 @@ class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datast
 
     val params = urlencode(Map(customParams ++ magicParams: _*))
 
-    val host = playConf.getString("hedylogos.server.host").get
-    val scheme = playConf.getString("hedylogos.server.scheme") getOrElse "http"
+    val host = playConf.getString("server.host").get
+    val scheme = playConf.getString("server.scheme") getOrElse "http"
     val href = routes.MiscCtrl.qiniuCallback().url
     val callbackUrl = s"$scheme://$host$href"
     val expire = 3600
@@ -115,8 +115,7 @@ class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datast
         val key = postMap.get("key").get
 
         // 获得contents内容
-        val conf = playConf.getConfig("hedylogos").get
-        val host = conf.getString(s"qiniu.bucket.$bucket").get
+        val host = playConf.getString(s"qiniu.bucket.$bucket").get
         val baseUrl = s"http://$host/$key"
         val styleSeparator = "!"
         val expire = 7 * 24 * 3600
@@ -128,8 +127,8 @@ class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datast
           case MessageType.IMAGE =>
             val imageInfo = Json.parse(postMap.get("imageInfo").get)
 
-            val entries = conf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
-              prop -> conf.getString(s"qiniu.style.$prop").get)
+            val entries = playConf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
+              prop -> playConf.getString(s"qiniu.style.$prop").get)
 
             val styleSet = for {
               entry <- entries
@@ -180,8 +179,7 @@ class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datast
     val key = postMap.get("key").get
 
     // 获得contents内容
-    val conf = playConf.getConfig("hedylogos").get
-    val host = conf.getString(s"qiniu.bucket.$bucket").get
+    val host = playConf.getString(s"qiniu.bucket.$bucket").get
     val baseUrl = s"http://$host/$key"
     val styleSeparator = "!"
     val expire = 7 * 24 * 3600
@@ -201,8 +199,8 @@ class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datast
         def buildUrlFromStyle(style: String): String = baseUrl +
           (if (style.nonEmpty) "%s%s".format(styleSeparator, style) else "")
 
-        val entries = conf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
-          prop -> conf.getString(s"qiniu.style.$prop").get)
+        val entries = playConf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
+          prop -> playConf.getString(s"qiniu.style.$prop").get)
 
         val styleSet = for {
           entry <- entries
