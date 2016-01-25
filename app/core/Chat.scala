@@ -114,7 +114,14 @@ object Chat {
   def buildMessage(msgType: MessageType.Value, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] = {
     for {
       msgId <- generateMsgId(cid)
-      msg <- Future(Message(msgType, contents, cid, msgId.get, receiver, sender, chatType))
+      msg <- Future {
+        msgType match {
+          case MessageType.ORDER =>
+            // 对于订单消息来说, 有一种单独的类: OrderMessage
+            OrderMessage(contents, cid, msgId.get, receiver, sender)
+          case _ => Message(msgType, contents, cid, msgId.get, receiver, sender, chatType)
+        }
+      }
       optAbbrev <- buildMessageAbbrev(msg)
     } yield {
       msg.abbrev = optAbbrev.orNull
