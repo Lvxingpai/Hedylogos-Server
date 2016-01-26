@@ -5,6 +5,7 @@ import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
 import core.connector.HedyRedis
+import core.exception.ResourceNotFoundException
 import core.filter.FilterManager
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
@@ -27,6 +28,17 @@ object Chat {
   val ds = {
     val morphiaMap = Play.application.injector instanceOf classOf[MorphiaMap]
     morphiaMap.map.get("hedylogos").get
+  }
+
+  /**
+   * 尝试获得一个conversation
+   * @param cid conversation的主键
+   * @return
+   */
+  def fetchConversation(cid: ObjectId): Future[Option[Conversation]] = {
+    Future {
+      Option(ds.find(classOf[Conversation], "id", cid).get)
+    }
   }
 
   /**
@@ -220,24 +232,28 @@ object Chat {
     }) getOrElse Future(None)
   }
 
-  /**
-   * 向接收者（可以是个人，也可以是讨论组）发送消息
-   *
-   * @param chatType 消息类型：单聊和群聊这两种
-   * @return
-   */
-  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
-    // 是否为单聊
-    val isSingleChat = chatType == ChatType.SINGLE
-
-    val conversation = if (isSingleChat)
-      Chat.getSingleConversation(sender, receiver)
-    else
-      Chat.getChatGroupConversation(receiver)
-    // val msgRes = FilterManager.process(buildMessage(msgType, contents, conv.id, receiver, sender, chatType))
-
+  def sendMessage2(cid: ObjectId, msgType: MessageType.Value, contents: String, sender: Long, includes: Seq[Long],
+    excludes: Seq[Long]): Future[Message] = {
     for {
-      conv <- conversation
+      conv <- fetchConversation(cid) map (_ getOrElse {
+        throw ResourceNotFoundException(Some(s"Invalid conversation ID: $cid"))
+      })
+      (receiver, chatType) <- {
+        Future.successful {
+          conv.fingerprint.split('.').toSeq match {
+            case Seq(a: String, b: String) =>
+              // 这是一个单聊
+              val receiver = (Seq(a, b) map (_.toLong) filter (_ != sender)).head
+              val chatType = ChatType.SINGLE
+              (receiver, chatType)
+            case Seq(a: String) =>
+              // 这是一个群聊
+              val receiver = a.toLong
+              val chatType = ChatType.CHATGROUP
+              (receiver, chatType)
+          }
+        }
+      }
       msg <- buildMessage(msgType, contents, conv.id, receiver, sender, chatType)
       filteredMsg <- FilterManager.process(msg) match {
         // 对消息进行过滤处理，并统一转换为Future
@@ -248,7 +264,7 @@ object Chat {
         // 发送消息
         filteredMsg match {
           case msg: Message =>
-            if (isSingleChat)
+            if (chatType == ChatType.SINGLE)
               sendMessageToConv(msg, conv, Seq(), Seq())
             else
               sendMessageToConv(msg, conv, includes, excludes)
@@ -257,6 +273,28 @@ object Chat {
     } yield {
       ret
     }
+  }
+
+  /**
+   * 向接收者（可以是个人，也可以是讨论组）发送消息
+   *
+   * @param chatType 消息类型：单聊和群聊这两种
+   * @return
+   */
+  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long,
+    chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
+    // 是否为单聊
+    val isSingleChat = chatType == ChatType.SINGLE
+
+    val conversation = if (isSingleChat)
+      Chat.getSingleConversation(sender, receiver)
+    else
+      Chat.getChatGroupConversation(receiver)
+    // val msgRes = FilterManager.process(buildMessage(msgType, contents, conv.id, receiver, sender, chatType))
+
+    conversation flatMap (c => {
+      sendMessage2(c.id, msgType, contents, sender, includes, excludes)
+    })
   }
 
   def fetchAndAckMessage(userId: Long, purgeBefore: Long): Future[Seq[Message]] = {

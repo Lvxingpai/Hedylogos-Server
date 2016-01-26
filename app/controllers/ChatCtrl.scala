@@ -19,6 +19,7 @@ import scala.collection.Map
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.util.Try
 
 /**
  * Created by zephyre on 4/23/15.
@@ -26,6 +27,25 @@ import scala.language.postfixOps
 class ChatCtrl @Inject() (@Named("default") configuration: Configuration, datastore: MorphiaMap) extends Controller {
 
   case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
+
+  def sendMessageToConversation(cid: ObjectId, msgType: Int, contents: String, senderId: Long, includes: Seq[Long] = Seq(),
+    excludes: Seq[Long] = Seq()): Future[Result] = {
+    val results = Chat.sendMessage2(cid, msgType, contents, senderId, includes, excludes) map (msg => {
+      val mapper = new ObjectMapper()
+      val node = mapper.createObjectNode()
+      node put ("conversation", msg.conversation.toString) put ("msgId", msg.msgId) put ("timestamp", msg.timestamp)
+      HedyResults(data = Some(node))
+    })
+
+    results recover {
+      case e: BlackListException =>
+        HedyResults.forbidden(HedyResults.RetCode.FORBIDDEN_BLACKLIST, errorMsg = Some(e.errorMsg))
+      case e: ContactException =>
+        HedyResults.forbidden(HedyResults.RetCode.FORBIDDEN_NOTCONTACT, errorMsg = Some(e.errorMsg))
+      case e: GroupMemberException =>
+        HedyResults.forbidden(HedyResults.RetCode.FORBIDDEN_NOTMEMBER, errorMsg = Some(e.errorMsg))
+    }
+  }
 
   def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String, includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq()): Future[Result] = {
     val futureMessage = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes)
@@ -84,15 +104,25 @@ class ChatCtrl @Inject() (@Named("default") configuration: Configuration, datast
         val ret = for {
           jsonNode <- request.body.asJson
           senderId <- (jsonNode \ "sender").asOpt[Long]
-          receiverId <- (jsonNode \ "receiver").asOpt[Long]
-          chatType <- (jsonNode \ "chatType").asOpt[String]
           msgType <- (jsonNode \ "msgType").asOpt[Int]
           contents <- (jsonNode \ "contents").asOpt[String]
         } yield {
-          // includes和excludes是可选项目
+          //           includes和excludes是可选项目
           val includes = (jsonNode \ "includes").asOpt[Seq[Long]] getOrElse Seq()
           val excludes = (jsonNode \ "excludes").asOpt[Seq[Long]] getOrElse Seq()
-          sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
+
+          // 有两种方式可以指定消息的接收者: 指定receiver和chatType, 或者直接给出conversation的ID
+          (
+            (jsonNode \ "receiver").asOpt[Long],
+            (jsonNode \ "chatType").asOpt[String],
+            (jsonNode \ "conversation").asOpt[String]
+          ) match {
+              case (Some(receiverId), Some(chatType), _) =>
+                sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
+              case (_, _, Some(cid)) if Try(new ObjectId(cid)).toOption.nonEmpty =>
+                sendMessageToConversation(new ObjectId(cid), msgType, contents, senderId, includes, excludes)
+              case _ => Future.successful(HedyResults.unprocessable())
+            }
         }
         ret getOrElse Future(HedyResults.unprocessable())
       }
