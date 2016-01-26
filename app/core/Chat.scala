@@ -232,8 +232,9 @@ object Chat {
     }) getOrElse Future(None)
   }
 
-  def sendMessage2(cid: ObjectId, msgType: MessageType.Value, contents: String, sender: Long, includes: Seq[Long],
-    excludes: Seq[Long]): Future[Message] = {
+  def sendMessage2(cid: ObjectId, msgType: MessageType.Value, contents: String, sender: Long,
+    includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq(),
+    msgPrimaryId: Option[ObjectId] = None): Future[Message] = {
     for {
       conv <- fetchConversation(cid) map (_ getOrElse {
         throw ResourceNotFoundException(Some(s"Invalid conversation ID: $cid"))
@@ -254,7 +255,13 @@ object Chat {
           }
         }
       }
-      msg <- buildMessage(msgType, contents, conv.id, receiver, sender, chatType)
+      msg <- {
+        buildMessage(msgType, contents, conv.id, receiver, sender, chatType) map (m => {
+          if (msgPrimaryId.nonEmpty)
+            m.id = msgPrimaryId.get
+          m
+        })
+      }
       filteredMsg <- FilterManager.process(msg) match {
         // 对消息进行过滤处理，并统一转换为Future
         case v: Future[_] => v
@@ -281,8 +288,9 @@ object Chat {
    * @param chatType 消息类型：单聊和群聊这两种
    * @return
    */
-  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long,
-    chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
+  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value,
+    includes: Seq[Long], excludes: Seq[Long],
+    msgPrimaryId: Option[ObjectId] = None): Future[Message] = {
     // 是否为单聊
     val isSingleChat = chatType == ChatType.SINGLE
 
@@ -293,7 +301,7 @@ object Chat {
     // val msgRes = FilterManager.process(buildMessage(msgType, contents, conv.id, receiver, sender, chatType))
 
     conversation flatMap (c => {
-      sendMessage2(c.id, msgType, contents, sender, includes, excludes)
+      sendMessage2(c.id, msgType, contents, sender, includes, excludes, msgPrimaryId)
     })
   }
 

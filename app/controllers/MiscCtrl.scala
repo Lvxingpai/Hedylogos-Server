@@ -12,6 +12,8 @@ import play.api.{ Play, Configuration }
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller }
 
+import scala.util.Try
+
 /**
  * Created by zephyre on 4/25/15.
  */
@@ -113,6 +115,7 @@ class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datast
         val cid = postMap.get("conversation").map(v => new ObjectId(v))
         val bucket = postMap.get("bucket").get
         val key = postMap.get("key").get
+        val msgPrimaryId = postMap get "id" flatMap (v => Try(new ObjectId(v)).toOption)
 
         // 获得contents内容
         val host = playConf.getString(s"qiniu.bucket.$bucket").get
@@ -159,66 +162,7 @@ class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datast
         }).toString()
 
         val ctrl = Play.application.injector instanceOf classOf[ChatCtrl]
-        ctrl.sendMessageBase(msgType.id, contents, recvId.get, senderId, chatType)
-        //        ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId.get, msgType.id, Some(contents)))
+        ctrl.sendMessageBase(msgType.id, contents, recvId.get, senderId, chatType, msgPrimaryId = msgPrimaryId)
       }
   }
-
-  /**
-   * 处理七牛图像的回调
-   * @param postMap
-   * @return
-   */
-  def qiniuSendMessageCallback(postMap: Map[String, String]) = {
-    val msgType = postMap.get("msgType").get.toInt
-    val senderId = postMap.get("sender").get.toLong
-    val chatType = postMap.get("chatType").get.toString
-    val recvId = postMap.get("receiver").map(_.toLong)
-    val cid = postMap.get("conversation").map(v => new ObjectId(v))
-    val bucket = postMap.get("bucket").get
-    val key = postMap.get("key").get
-
-    // 获得contents内容
-    val host = playConf.getString(s"qiniu.bucket.$bucket").get
-    val baseUrl = s"http://$host/$key"
-    val styleSeparator = "!"
-    val expire = 7 * 24 * 3600
-
-    val contents = msgType match {
-      case 1 =>
-        val avinfo = Json.parse(postMap.get("avinfo").get)
-        val duration = (avinfo \ "audio" \ "duration").asOpt[String].get.toDouble
-
-        JsObject(Seq(
-          "url" -> JsString(QiniuClient.privateDownloadUrl(baseUrl, expire)),
-          "duration" -> JsNumber(duration)
-        )).toString()
-      case 2 =>
-        val imageInfo = Json.parse(postMap.get("imageInfo").get)
-
-        def buildUrlFromStyle(style: String): String = baseUrl +
-          (if (style.nonEmpty) "%s%s".format(styleSeparator, style) else "")
-
-        val entries = playConf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
-          prop -> playConf.getString(s"qiniu.style.$prop").get)
-
-        val styleSet = for {
-          entry <- entries
-        } yield {
-          val (prop, style) = entry
-          prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(style), expire))
-        }
-
-        JsObject(Seq(
-          "width" -> JsNumber((imageInfo \ "width").asOpt[Int].get),
-          "height" -> JsNumber((imageInfo \ "height").asOpt[Int].get)
-        ) ++ styleSet.toSeq).toString()
-      case _ => throw new IllegalArgumentException
-    }
-
-    val ctrl = Play.application.injector instanceOf classOf[ChatCtrl]
-    ctrl.sendMessageBase(msgType, contents, recvId.get, senderId, chatType)
-    //    ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId.get, msgType, Some(contents)))
-  }
-
 }

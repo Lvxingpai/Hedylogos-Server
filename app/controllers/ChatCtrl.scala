@@ -28,9 +28,10 @@ class ChatCtrl @Inject() (@Named("default") configuration: Configuration, datast
 
   case class MessageInfo(senderId: Long, chatType: String, receiverId: Long, msgType: Int, contents: Option[String])
 
-  def sendMessageToConversation(cid: ObjectId, msgType: Int, contents: String, senderId: Long, includes: Seq[Long] = Seq(),
-    excludes: Seq[Long] = Seq()): Future[Result] = {
-    val results = Chat.sendMessage2(cid, msgType, contents, senderId, includes, excludes) map (msg => {
+  def sendMessageToConversation(cid: ObjectId, msgType: Int, contents: String, senderId: Long,
+    includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq(),
+    msgPrimaryId: Option[ObjectId] = None): Future[Result] = {
+    val results = Chat.sendMessage2(cid, msgType, contents, senderId, includes, excludes, msgPrimaryId) map (msg => {
       val mapper = new ObjectMapper()
       val node = mapper.createObjectNode()
       node put ("conversation", msg.conversation.toString) put ("msgId", msg.msgId) put ("timestamp", msg.timestamp)
@@ -47,8 +48,10 @@ class ChatCtrl @Inject() (@Named("default") configuration: Configuration, datast
     }
   }
 
-  def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String, includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq()): Future[Result] = {
-    val futureMessage = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes)
+  def sendMessageBase(msgType: Int, contents: String, receiver: Long, sender: Long, chatType: String,
+    includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq(),
+    msgPrimaryId: Option[ObjectId] = None): Future[Result] = {
+    val futureMessage = Chat.sendMessage(msgType, contents, receiver, sender, chatType, includes, excludes, msgPrimaryId)
 
     val results = futureMessage map (msg => {
       val mapper = new ObjectMapper()
@@ -110,6 +113,7 @@ class ChatCtrl @Inject() (@Named("default") configuration: Configuration, datast
           //           includes和excludes是可选项目
           val includes = (jsonNode \ "includes").asOpt[Seq[Long]] getOrElse Seq()
           val excludes = (jsonNode \ "excludes").asOpt[Seq[Long]] getOrElse Seq()
+          val msgPrimaryId = (jsonNode \ "id").asOpt[String] flatMap (v => Try(new ObjectId(v)).toOption)
 
           // 有两种方式可以指定消息的接收者: 指定receiver和chatType, 或者直接给出conversation的ID
           (
@@ -118,9 +122,10 @@ class ChatCtrl @Inject() (@Named("default") configuration: Configuration, datast
             (jsonNode \ "conversation").asOpt[String]
           ) match {
               case (Some(receiverId), Some(chatType), _) =>
-                sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes)
+                sendMessageBase(msgType, contents, receiverId, senderId, chatType, includes, excludes, msgPrimaryId)
               case (_, _, Some(cid)) if Try(new ObjectId(cid)).toOption.nonEmpty =>
-                sendMessageToConversation(new ObjectId(cid), msgType, contents, senderId, includes, excludes)
+                sendMessageToConversation(new ObjectId(cid), msgType, contents, senderId, includes, excludes,
+                  msgPrimaryId)
               case _ => Future.successful(HedyResults.unprocessable())
             }
         }
