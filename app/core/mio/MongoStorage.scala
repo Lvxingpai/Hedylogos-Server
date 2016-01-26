@@ -57,7 +57,13 @@ object MongoStorage extends MessageDeliever {
 
   private def updateConversationView(message: Message, targets: Set[Long]): Future[Message] = {
     // 先查看当前已有的ConversationView
-    val query = (ds.createQuery(classOf[ConversationView]) field "conversationId" equal message.conversation).retrievedFields(true, "userId")
+    val query = {
+      val tmp = ds.createQuery(classOf[ConversationView]) field "conversationId" equal message.conversation
+      (if (targets.nonEmpty)
+        tmp field "userId" in targets
+      else
+        tmp).retrievedFields(true, "userId")
+    }
     val existed = query.asList().toSeq
 
     // 这些用户是新增加的, 可能需要新建ConversationView
