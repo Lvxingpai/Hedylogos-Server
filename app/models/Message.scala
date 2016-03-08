@@ -71,6 +71,7 @@ object Message {
     val HTML = Value(18)
     val COMMODITY = Value(19)
     val ORDER = Value(20)
+    val COUPON = Value(21)
     val CMD = Value(100)
     val TIP = Value(200)
   }
