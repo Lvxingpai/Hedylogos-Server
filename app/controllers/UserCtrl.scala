@@ -1,7 +1,11 @@
 package controllers
 
+import javax.inject.{ Inject, Named }
+
+import com.lvxingpai.inject.morphia.MorphiaMap
 import core.User
 import core.aspectj.WithAccessLog
+import play.api.Configuration
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.mvc.{ Action, Controller }
 
@@ -10,7 +14,7 @@ import scala.concurrent.Future
 /**
  * Created by zephyre on 4/20/15.
  */
-object UserCtrl extends Controller {
+class UserCtrl @Inject() (@Named("default") configuration: Configuration, datastore: MorphiaMap) extends Controller {
   @WithAccessLog
   def login = Action.async {
     request =>

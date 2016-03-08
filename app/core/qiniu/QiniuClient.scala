@@ -1,16 +1,25 @@
 package core.qiniu
 
 import com.qiniu.util.{ Auth, StringMap }
-import core.GlobalConfig.playConf
+import play.api.{ Configuration, Play }
+import play.api.inject.BindingKey
 
 /**
  * Created by zephyre on 4/25/15.
  */
 object QiniuClient {
 
+  private val playConf = {
+    import Play.current
+
+    Play.application.injector instanceOf (BindingKey(classOf[Configuration]) qualifiedWith "default")
+  }
+
   private def getConfig: Map[String, String] = {
-    Map("accessKey" -> playConf.getString("hedylogos.qiniu.accessKey").get,
-      "secretKey" -> playConf.getString("hedylogos.qiniu.secretKey").get)
+    Map(
+      "accessKey" -> playConf.getString("hedylogos.qiniu.accessKey").get,
+      "secretKey" -> playConf.getString("hedylogos.qiniu.secretKey").get
+    )
   }
 
   val secretKey = getConfig apply "secretKey"

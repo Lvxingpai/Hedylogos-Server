@@ -1,19 +1,27 @@
 package controllers
 
+import javax.inject.{ Inject, Named }
+import play.api.Play.current
 import com.fasterxml.jackson.databind.ObjectMapper
-import core.GlobalConfig
-import core.GlobalConfig.playConf
+import com.lvxingpai.inject.morphia.MorphiaMap
 import core.aspectj.WithAccessLog
 import core.qiniu.QiniuClient
 import models.Message.MessageType
 import org.bson.types.ObjectId
+import play.api.{ Play, Configuration }
 import play.api.libs.json._
 import play.api.mvc.{ Action, Controller }
+
+import scala.util.Try
 
 /**
  * Created by zephyre on 4/25/15.
  */
-object MiscCtrl extends Controller {
+class MiscCtrl @Inject() (@Named("default") configuration: Configuration, datastore: MorphiaMap) extends Controller {
+
+  implicit val ds = datastore.map.get("hedylogos").get
+
+  implicit val playConf = configuration.getConfig("hedylogos") getOrElse Configuration.empty
 
   @WithAccessLog
   def uploadToken = Action {
@@ -22,8 +30,6 @@ object MiscCtrl extends Controller {
         val jsonBody = request.body.asJson.get
         val key = java.util.UUID.randomUUID.toString
         val msgType = MessageType((jsonBody \ "msgType").asOpt[Int].get)
-
-        implicit val playConf = GlobalConfig.playConf.getConfig("hedylogos")
 
         val token = sendMessageToken(key = key, msgType = msgType)
 
@@ -71,8 +77,8 @@ object MiscCtrl extends Controller {
 
     val params = urlencode(Map(customParams ++ magicParams: _*))
 
-    val host = playConf.getString("hedylogos.server.host").get
-    val scheme = playConf.getString("hedylogos.server.scheme") getOrElse "http"
+    val host = playConf.getString("server.host").get
+    val scheme = playConf.getString("server.scheme") getOrElse "http"
     val href = routes.MiscCtrl.qiniuCallback().url
     val callbackUrl = s"$scheme://$host$href"
     val expire = 3600
@@ -109,10 +115,10 @@ object MiscCtrl extends Controller {
         val cid = postMap.get("conversation").map(v => new ObjectId(v))
         val bucket = postMap.get("bucket").get
         val key = postMap.get("key").get
+        val msgPrimaryId = postMap get "id" flatMap (v => Try(new ObjectId(v)).toOption)
 
         // 获得contents内容
-        val conf = playConf.getConfig("hedylogos").get
-        val host = conf.getString(s"qiniu.bucket.$bucket").get
+        val host = playConf.getString(s"qiniu.bucket.$bucket").get
         val baseUrl = s"http://$host/$key"
         val styleSeparator = "!"
         val expire = 7 * 24 * 3600
@@ -124,8 +130,8 @@ object MiscCtrl extends Controller {
           case MessageType.IMAGE =>
             val imageInfo = Json.parse(postMap.get("imageInfo").get)
 
-            val entries = conf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
-              prop -> conf.getString(s"qiniu.style.$prop").get)
+            val entries = playConf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
+              prop -> playConf.getString(s"qiniu.style.$prop").get)
 
             val styleSet = for {
               entry <- entries
@@ -143,7 +149,8 @@ object MiscCtrl extends Controller {
 
             Seq(
               "url" -> JsString(QiniuClient.privateDownloadUrl(baseUrl, expire)),
-              "duration" -> JsNumber(duration))
+              "duration" -> JsNumber(duration)
+            )
           case MessageType.LOCATION =>
             Seq(
               "snapshot" -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle("location"), expire)),
@@ -154,64 +161,8 @@ object MiscCtrl extends Controller {
           case _ => throw new IllegalArgumentException
         }).toString()
 
-        ChatCtrl.sendMessageBase(msgType.id, contents, recvId.get, senderId, chatType)
-        //        ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId.get, msgType.id, Some(contents)))
+        val ctrl = Play.application.injector instanceOf classOf[ChatCtrl]
+        ctrl.sendMessageBase(msgType.id, contents, recvId.get, senderId, chatType, msgPrimaryId = msgPrimaryId)
       }
   }
-
-  /**
-   * 处理七牛图像的回调
-   * @param postMap
-   * @return
-   */
-  def qiniuSendMessageCallback(postMap: Map[String, String]) = {
-    val msgType = postMap.get("msgType").get.toInt
-    val senderId = postMap.get("sender").get.toLong
-    val chatType = postMap.get("chatType").get.toString
-    val recvId = postMap.get("receiver").map(_.toLong)
-    val cid = postMap.get("conversation").map(v => new ObjectId(v))
-    val bucket = postMap.get("bucket").get
-    val key = postMap.get("key").get
-
-    // 获得contents内容
-    val conf = playConf.getConfig("hedylogos").get
-    val host = conf.getString(s"qiniu.bucket.$bucket").get
-    val baseUrl = s"http://$host/$key"
-    val styleSeparator = "!"
-    val expire = 7 * 24 * 3600
-
-    val contents = msgType match {
-      case 1 =>
-        val avinfo = Json.parse(postMap.get("avinfo").get)
-        val duration = (avinfo \ "audio" \ "duration").asOpt[String].get.toDouble
-
-        JsObject(Seq(
-          "url" -> JsString(QiniuClient.privateDownloadUrl(baseUrl, expire)),
-          "duration" -> JsNumber(duration))).toString()
-      case 2 =>
-        val imageInfo = Json.parse(postMap.get("imageInfo").get)
-
-        def buildUrlFromStyle(style: String): String = baseUrl +
-          (if (style.nonEmpty) "%s%s".format(styleSeparator, style) else "")
-
-        val entries = conf.getConfig("qiniu.style").get.subKeys.toSeq map (prop =>
-          prop -> conf.getString(s"qiniu.style.$prop").get)
-
-        val styleSet = for {
-          entry <- entries
-        } yield {
-          val (prop, style) = entry
-          prop -> JsString(QiniuClient.privateDownloadUrl(buildUrlFromStyle(style), expire))
-        }
-
-        JsObject(Seq(
-          "width" -> JsNumber((imageInfo \ "width").asOpt[Int].get),
-          "height" -> JsNumber((imageInfo \ "height").asOpt[Int].get)
-        ) ++ styleSet.toSeq).toString()
-      case _ => throw new IllegalArgumentException
-    }
-    ChatCtrl.sendMessageBase(msgType, contents, recvId.get, senderId, chatType)
-    //    ChatCtrl.sendMessageBase(MessageInfo(senderId, chatType, recvId.get, msgType, Some(contents)))
-  }
-
 }

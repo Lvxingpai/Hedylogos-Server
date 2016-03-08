@@ -1,19 +1,21 @@
 package core
 
+import com.lvxingpai.inject.morphia.MorphiaMap
 import com.mongodb.DuplicateKeyException
 import core.Implicits.TwitterConverter._
 import core.Implicits._
-import core.connector.{ HedyRedis, MorphiaFactory }
+import core.connector.HedyRedis
+import core.exception.ResourceNotFoundException
 import core.filter.FilterManager
 import core.finagle.FinagleCore
 import core.mio.{ GetuiService, MongoStorage, RedisMessaging }
-import misc.FinagleFactory
 import models.Message.{ ChatType, MessageType }
 import models._
 import org.bson.types.ObjectId
 import org.mongodb.morphia.query.UpdateOperations
+import play.api.Play
+import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-
 import scala.collection.JavaConversions._
 import scala.collection.Map
 import scala.concurrent.Future
@@ -23,7 +25,21 @@ import scala.language.postfixOps
  * Created by zephyre on 4/20/15.
  */
 object Chat {
-  val ds = MorphiaFactory.datastore
+  val ds = {
+    val morphiaMap = Play.application.injector instanceOf classOf[MorphiaMap]
+    morphiaMap.map.get("hedylogos").get
+  }
+
+  /**
+   * 尝试获得一个conversation
+   * @param cid conversation的主键
+   * @return
+   */
+  def fetchConversation(cid: ObjectId): Future[Option[Conversation]] = {
+    Future {
+      Option(ds.find(classOf[Conversation], "id", cid).get)
+    }
+  }
 
   /**
    * 获得一个单聊的Conversation
@@ -71,7 +87,11 @@ object Chat {
     }
 
     def buildChatGroupConversation(gid: Long): Future[Conversation] = {
-      val future = FinagleFactory.client.getChatGroup(gid, None) map (g => {
+      import com.lvxingpai.yunkai.Userservice.{ FinagledClient => YunkaiClient }
+
+      val client = Play.application.injector instanceOf classOf[YunkaiClient]
+
+      val future = client.getChatGroup(gid, None) map (g => {
         val c = Conversation(new ObjectId(g.id), gid)
         try {
           ds.save[Conversation](c)
@@ -106,7 +126,14 @@ object Chat {
   def buildMessage(msgType: MessageType.Value, contents: String, cid: ObjectId, receiver: Long, sender: Long, chatType: ChatType.Value): Future[Message] = {
     for {
       msgId <- generateMsgId(cid)
-      msg <- Future(Message(msgType, contents, cid, msgId.get, receiver, sender, chatType))
+      msg <- Future {
+        msgType match {
+          case MessageType.ORDER =>
+            // 对于订单消息来说, 有一种单独的类: OrderMessage
+            OrderMessage(contents, cid, msgId.get, receiver, sender)
+          case _ => Message(msgType, contents, cid, msgId.get, receiver, sender, chatType)
+        }
+      }
       optAbbrev <- buildMessageAbbrev(msg)
     } yield {
       msg.abbrev = optAbbrev.orNull
@@ -186,6 +213,10 @@ object Chat {
           Some("发来了一个扫货好去处")
         case item if item == HOTEL.id =>
           Some("发来了一个酒店")
+        case item if item == COMMODITY.id =>
+          Some("发来了一个商品")
+        case item if item == ORDER.id =>
+          Some("发来了一条订单动态")
         case _ =>
           None
       }
@@ -201,13 +232,65 @@ object Chat {
     }) getOrElse Future(None)
   }
 
+  def sendMessage2(cid: ObjectId, msgType: MessageType.Value, contents: String, sender: Long,
+    includes: Seq[Long] = Seq(), excludes: Seq[Long] = Seq(),
+    msgPrimaryId: Option[ObjectId] = None): Future[Message] = {
+    for {
+      conv <- fetchConversation(cid) map (_ getOrElse {
+        throw ResourceNotFoundException(Some(s"Invalid conversation ID: $cid"))
+      })
+      (receiver, chatType) <- {
+        Future.successful {
+          conv.fingerprint.split('.').toSeq match {
+            case Seq(a: String, b: String) =>
+              // 这是一个单聊
+              val receiver = (Seq(a, b) map (_.toLong) filter (_ != sender)).head
+              val chatType = ChatType.SINGLE
+              (receiver, chatType)
+            case Seq(a: String) =>
+              // 这是一个群聊
+              val receiver = a.toLong
+              val chatType = ChatType.CHATGROUP
+              (receiver, chatType)
+          }
+        }
+      }
+      msg <- {
+        buildMessage(msgType, contents, conv.id, receiver, sender, chatType) map (m => {
+          if (msgPrimaryId.nonEmpty)
+            m.id = msgPrimaryId.get
+          m
+        })
+      }
+      filteredMsg <- FilterManager.process(msg) match {
+        // 对消息进行过滤处理，并统一转换为Future
+        case v: Future[_] => v
+        case m: Message => Future(m)
+      }
+      ret <- {
+        // 发送消息
+        filteredMsg match {
+          case msg: Message =>
+            if (chatType == ChatType.SINGLE)
+              sendMessageToConv(msg, conv, Seq(), Seq())
+            else
+              sendMessageToConv(msg, conv, includes, excludes)
+        }
+      }
+    } yield {
+      ret
+    }
+  }
+
   /**
    * 向接收者（可以是个人，也可以是讨论组）发送消息
    *
    * @param chatType 消息类型：单聊和群聊这两种
    * @return
    */
-  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value, includes: Seq[Long], excludes: Seq[Long]): Future[Message] = {
+  def sendMessage(msgType: MessageType.Value, contents: String, receiver: Long, sender: Long, chatType: ChatType.Value,
+    includes: Seq[Long], excludes: Seq[Long],
+    msgPrimaryId: Option[ObjectId] = None): Future[Message] = {
     // 是否为单聊
     val isSingleChat = chatType == ChatType.SINGLE
 
@@ -217,27 +300,9 @@ object Chat {
       Chat.getChatGroupConversation(receiver)
     // val msgRes = FilterManager.process(buildMessage(msgType, contents, conv.id, receiver, sender, chatType))
 
-    for {
-      conv <- conversation
-      msg <- buildMessage(msgType, contents, conv.id, receiver, sender, chatType)
-      filteredMsg <- FilterManager.process(msg) match {
-        // 对消息进行过滤处理，并统一转换为Future
-        case v: Future[Message] => v
-        case m: Message => Future(m)
-      }
-      ret <- {
-        // 发送消息
-        filteredMsg match {
-          case msg: Message =>
-            if (isSingleChat)
-              sendMessageToConv(msg, conv, Seq(), Seq())
-            else
-              sendMessageToConv(msg, conv, includes, excludes)
-        }
-      }
-    } yield {
-      ret
-    }
+    conversation flatMap (c => {
+      sendMessage2(c.id, msgType, contents, sender, includes, excludes, msgPrimaryId)
+    })
   }
 
   def fetchAndAckMessage(userId: Long, purgeBefore: Long): Future[Seq[Message]] = {

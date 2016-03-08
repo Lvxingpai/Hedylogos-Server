@@ -1,23 +1,27 @@
 package core.filter
 
-import core.exception.{ GroupMemberException, StopMessageFilterException }
-import misc.FinagleFactory
+import com.lvxingpai.yunkai.Userservice.{ FinagledClient => YunkaiClient }
+import core.Implicits.TwitterConverter._
+import core.exception.GroupMemberException
 import models.Message
+import play.api.Play
+import play.api.Play.current
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import core.Implicits.TwitterConverter._
 
 /**
  * Created by pengyt on 2015/8/17.
  */
 class GroupMemberFilter extends Filter {
+  lazy val yunkai = Play.application.injector instanceOf classOf[YunkaiClient]
 
   /**
    * 检查用户是否是群成员
    *
    * @return
    */
-  private def member(userId: Long, chatGroupId: Long): Future[Boolean] = FinagleFactory.client.isMember(userId, chatGroupId)
+  private def member(userId: Long, chatGroupId: Long): Future[Boolean] = yunkai.isMember(userId, chatGroupId)
 
   /**
    * 权限检查。根据message，如果用户sender不是群receiver中的成员，将抛出StopMessageFilterException的异常，终止消息过滤流水线。

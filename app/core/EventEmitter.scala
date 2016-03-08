@@ -1,9 +1,11 @@
 package core
 
 import com.fasterxml.jackson.databind.{ JsonNode, ObjectMapper }
-import com.lvxingpai.apium.{ ApiumSeed, ApiumPlant }
-import com.lvxingpai.apium.ApiumPlant.ConnectionParam
+//import com.lvxingpai.apium.{ ApiumSeed, ApiumPlant }
+//import com.lvxingpai.apium.ApiumPlant.ConnectionParam
 import org.joda.time.DateTime
+import play.api.{ Configuration, Play }
+import play.api.inject.BindingKey
 
 import scala.language.postfixOps
 
@@ -21,10 +23,12 @@ object EventEmitter {
 
   // 初始化
   val apiumPlant = {
-    val conf = GlobalConfig.playConf
+    import play.api.Play.current
+
+    val conf = Play.application.injector instanceOf (BindingKey(classOf[Configuration]) qualifiedWith "default")
 
     // 获得rabbitmq的地址
-    val rabbitmqEntries = conf.getConfig("backends.rabbitmq").get
+    val rabbitmqEntries = conf.getConfig("services.rabbitmq").get
     val servers = rabbitmqEntries.subKeys map (rabbitmqEntries.getConfig(_).get)
     val host = servers.head.getString("host").get
     val port = servers.head.getInt("port").get
@@ -33,7 +37,7 @@ object EventEmitter {
     val password = conf.getString("hedylogos.server.rabbitmq.password").get
     val virtualHost = conf.getString("hedylogos.server.rabbitmq.virtualhost").get
 
-    ApiumPlant(ConnectionParam(host, port, username, password, virtualHost), "hedylogos", Seq(evtFilterMessage))
+    //    ApiumPlant(ConnectionParam(host, port, username, password, virtualHost), "hedylogos", Seq(evtFilterMessage))
   }
 
   /**
@@ -61,7 +65,7 @@ object EventEmitter {
       case Some(v) => Some(DateTime.now plus v)
     }
 
-    val seed = ApiumSeed(apiumPlant.defaultTaskName(eventName), kwargs = eventMap, expire = expireDelta, eta = etaDelta)
-    apiumPlant.sendSeed(eventName, seed)
+    //    val seed = ApiumSeed(apiumPlant.defaultTaskName(eventName), kwargs = eventMap, expire = expireDelta, eta = etaDelta)
+    //    apiumPlant.sendSeed(eventName, seed)
   }
 }
